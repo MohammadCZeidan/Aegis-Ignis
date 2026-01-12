@@ -1,0 +1,416 @@
+import { useState, useEffect } from 'react';
+import { Building2, TrendingUp, Users, Clock, MapPin, Plus, Edit, Trash2 } from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '../components/ui/avatar';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { dataService, Floor, Employee } from '../services/dataService';
+
+interface FloorsProps {
+  onViewChange: (view: string, data?: any) => void;
+}
+
+export function Floors({ onViewChange }: FloorsProps) {
+  const [floors, setFloors] = useState<Floor[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [occupancy, setOccupancy] = useState<Record<number, number>>({});
+  const [selectedFloor, setSelectedFloor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingFloor, setEditingFloor] = useState<Floor | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    floor_number: 1,
+    max_occupancy: 50,
+    description: '',
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    console.log('Floors page: Loading data...');
+    try {
+      const [floorsData, employeesData, occupancyData] = await Promise.all([
+        dataService.getFloors(),
+        dataService.getEmployees(),
+        dataService.getAllOccupancy(),
+      ]);
+      console.log('Floors data received:', floorsData);
+      console.log('Employees data received:', employeesData);
+      console.log('Occupancy data received:', occupancyData);
+      setFloors(floorsData);
+      setAllEmployees(employeesData);
+      setOccupancy(occupancyData);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      alert('Failed to load floor data. Check console for details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateFloor = async () => {
+    if (!formData.name || !formData.floor_number) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    console.log('Creating floor with data:', formData);
+    const result = await dataService.createFloor(formData);
+    console.log('Create floor result:', result);
+    
+    if (result) {
+      alert('Floor created successfully!');
+      await loadData();
+      setShowCreateDialog(false);
+      setFormData({ name: '', floor_number: 1, max_occupancy: 50, description: '' });
+    } else {
+      console.error('Floor creation returned null');
+    }
+  };
+
+  const handleUpdateFloor = async () => {
+    if (editingFloor) {
+      const result = await dataService.updateFloor(editingFloor.id, formData);
+      if (result) {
+        await loadData();
+        setEditingFloor(null);
+        setFormData({ name: '', floor_number: 1, max_occupancy: 50, description: '' });
+      }
+    }
+  };
+
+  const handleDeleteFloor = async (id: number) => {
+    if (confirm('Are you sure you want to delete this floor?')) {
+      const success = await dataService.deleteFloor(id);
+      if (success) {
+        await loadData();
+      }
+    }
+  };
+
+  const openEditDialog = (floor: Floor) => {
+    setEditingFloor(floor);
+    setFormData({
+      name: floor.name,
+      floor_number: floor.floor_number,
+      max_occupancy: floor.max_occupancy || 50,
+      description: floor.description || '',
+    });
+  };
+
+  const getTimeAgo = (timestamp: string): string => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 lg:p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading floors...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const floorsWithEmployees = floors.map(floor => ({
+    ...floor,
+    employees: allEmployees.filter(emp => emp.floor_id === floor.id),
+    currentOccupancy: occupancy[floor.id] || 0,
+  }));
+
+  const totalOccupancy = Object.values(occupancy).reduce((a, b) => a + b, 0);
+  const totalCapacity = floors.reduce((sum, floor) => sum + (floor.max_occupancy || 0), 0);
+  const averageOccupancy = totalCapacity > 0 ? (totalOccupancy / totalCapacity) * 100 : 0;
+
+  return (
+    <div className="p-4 lg:p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl lg:text-2xl text-slate-900">Floor Management</h1>
+          <p className="text-sm lg:text-base text-slate-500">Manage building floors and view occupants</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Floor
+        </Button>
+      </div>
+
+      {/* Summary Card */}
+      <Card className="p-5 lg:p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <Building2 className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs lg:text-sm text-slate-600">Total Floors</p>
+              <p className="text-xl lg:text-2xl text-slate-900">{floors.length}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-50 rounded-lg">
+              <Users className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-xs lg:text-sm text-slate-600">Total People</p>
+              <p className="text-base lg:text-lg text-slate-900">{allEmployees.length}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-50 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-xs lg:text-sm text-slate-600">Avg Utilization</p>
+              <p className="text-xl lg:text-2xl text-slate-900">{averageOccupancy.toFixed(0)}%</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-orange-50 rounded-lg">
+              <Users className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-xs lg:text-sm text-slate-600">Current Occupancy</p>
+              <p className="text-xl lg:text-2xl text-slate-900">{totalOccupancy}</p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* No Floors Message */}
+      {floors.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Building2 className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Floors Created</h3>
+          <p className="text-slate-600 mb-4">
+            Create your first floor to start organizing your building.
+          </p>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create First Floor
+          </Button>
+        </Card>
+      ) : (
+        <div>
+          <h2 className="text-lg lg:text-xl text-slate-900 mb-4">Floors & Occupants</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {floorsWithEmployees.map(floor => {
+              const maxOcc = floor.max_occupancy || 50;
+              const currentOcc = floor.currentOccupancy;
+              const occupancyPercent = (currentOcc / maxOcc) * 100;
+              const status = 
+                occupancyPercent >= 90 ? 'critical' :
+                occupancyPercent >= 70 ? 'warning' : 'normal';
+
+              return (
+                <Card key={floor.id} className="p-5 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-slate-900">{floor.name}</h3>
+                      <p className="text-sm text-slate-500">Floor {floor.floor_number}</p>
+                      {floor.description && (
+                        <p className="text-xs text-slate-400 mt-1">{floor.description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditDialog(floor)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteFloor(floor.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Badge variant={
+                    status === 'normal' ? 'default' : 
+                    status === 'warning' ? 'secondary' : 
+                    'destructive'
+                  } className="mb-3">
+                    {floor.employees.length} registered employees
+                  </Badge>
+
+                  {/* Occupancy Bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-slate-600 mb-1">
+                      <span>Current Occupancy</span>
+                      <span>{currentOcc}/{maxOcc}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all ${
+                          status === 'critical' ? 'bg-red-500' :
+                          status === 'warning' ? 'bg-yellow-500' :
+                          'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Registered Employees */}
+                  {floor.employees.length > 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-slate-700 mb-2">Registered Employees</p>
+                      <div 
+                        className={`space-y-2 ${
+                          selectedFloor !== floor.id.toString() && floor.employees.length > 3 
+                            ? 'max-h-32 overflow-hidden' 
+                            : 'max-h-96 overflow-y-auto'
+                        }`}
+                      >
+                        {(selectedFloor === floor.id.toString() ? floor.employees : floor.employees.slice(0, 3))
+                          .map(employee => (
+                            <div key={employee.id} className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                                <AvatarFallback>{employee.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 truncate">{employee.name}</p>
+                                {employee.email && (
+                                  <p className="text-xs text-slate-500 truncate">{employee.email}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                      {floor.employees.length > 3 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-xs"
+                          onClick={() => setSelectedFloor(
+                            selectedFloor === floor.id.toString() ? null : floor.id.toString()
+                          )}
+                        >
+                          {selectedFloor === floor.id.toString() 
+                            ? 'Show Less' 
+                            : `+${floor.employees.length - 3} more`}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">No registered employees</p>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Floor Dialog */}
+      <Dialog open={showCreateDialog || editingFloor !== null} onOpenChange={(open) => {
+        if (!open) {
+          setShowCreateDialog(false);
+          setEditingFloor(null);
+          setFormData({ name: '', floor_number: 1, max_occupancy: 50, description: '' });
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingFloor ? 'Edit Floor' : 'Create New Floor'}</DialogTitle>
+            <DialogDescription>
+              {editingFloor ? 'Update floor details below' : 'Add a new floor to your building. All fields are required.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="name">Floor Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., Ground Floor, First Floor"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="floor_number">Floor Number</Label>
+              <Input
+                id="floor_number"
+                type="number"
+                value={formData.floor_number}
+                onChange={(e) => setFormData({ ...formData, floor_number: parseInt(e.target.value) })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="max_occupancy">Maximum Occupancy</Label>
+              <Input
+                id="max_occupancy"
+                type="number"
+                value={formData.max_occupancy}
+                onChange={(e) => setFormData({ ...formData, max_occupancy: parseInt(e.target.value) })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief description"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                setEditingFloor(null);
+                setFormData({ name: '', floor_number: 1, max_occupancy: 50, description: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={editingFloor ? handleUpdateFloor : handleCreateFloor}>
+              {editingFloor ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

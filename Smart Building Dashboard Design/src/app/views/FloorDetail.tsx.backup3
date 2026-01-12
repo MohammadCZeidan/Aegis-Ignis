@@ -1,0 +1,150 @@
+import { ArrowLeft, Users, MapPin, Activity } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { CameraCard } from '../components/CameraCard';
+import { getFloorById, getCamerasByFloor, getPeopleByFloor } from '../data/mockData';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+
+interface FloorDetailProps {
+  floorId: string;
+  onBack: () => void;
+  onCameraFullscreen?: (cameraId: string) => void;
+}
+
+export function FloorDetail({ floorId, onBack, onCameraFullscreen }: FloorDetailProps) {
+  const floor = getFloorById(floorId);
+  const cameras = getCamerasByFloor(floorId);
+  const people = getPeopleByFloor(floorId);
+
+  if (!floor) {
+    return (
+      <div className="p-6">
+        <p className="text-slate-500">Floor not found</p>
+      </div>
+    );
+  }
+
+  const statusConfig = {
+    normal: { color: 'bg-green-500', label: 'Normal' },
+    warning: { color: 'bg-orange-500', label: 'Warning' },
+    critical: { color: 'bg-red-500', label: 'Critical' }
+  };
+
+  const config = statusConfig[floor.status];
+  const occupancyPercentage = (floor.occupancy / floor.maxOccupancy) * 100;
+
+  const formatTimeAgo = (date: Date) => {
+    const diffInMinutes = Math.floor((new Date().getTime() - date.getTime()) / 60000);
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    return `${Math.floor(diffInMinutes / 60)} hr ago`;
+  };
+
+  return (
+    <div className="p-4 lg:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={onBack} className="h-10 w-10 p-0">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-xl lg:text-2xl text-slate-900">{floor.name}</h1>
+            <p className="text-sm lg:text-base text-slate-500">Floor {floor.number}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className={`w-4 h-4 rounded-full ${config.color}`} />
+          <Badge variant="outline" className="py-1.5 px-3">{config.label}</Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content - Cameras */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Occupancy Summary */}
+          <Card className="p-5 lg:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <Users className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm lg:text-base text-slate-600">Current Occupancy</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl lg:text-4xl text-slate-900">{floor.occupancy}</span>
+                    <span className="text-xl lg:text-2xl text-slate-500">/ {floor.maxOccupancy}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-sm lg:text-base text-slate-600">Capacity</p>
+                <p className="text-2xl lg:text-3xl text-slate-900">{occupancyPercentage.toFixed(0)}%</p>
+              </div>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-3 mt-4">
+              <div 
+                className={`h-3 rounded-full transition-all ${
+                  occupancyPercentage > 80 ? 'bg-red-500' : 
+                  occupancyPercentage > 60 ? 'bg-orange-500' : 
+                  'bg-green-500'
+                }`}
+                style={{ width: `${occupancyPercentage}%` }}
+              />
+            </div>
+          </Card>
+
+          {/* Camera Grid */}
+          <div>
+            <h2 className="text-lg lg:text-xl text-slate-900 mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Live Camera Feeds
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {cameras.map(camera => (
+                <CameraCard 
+                  key={camera.id} 
+                  camera={camera}
+                  onFullscreen={onCameraFullscreen}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar - People List */}
+        <div className="lg:col-span-1">
+          <Card className="p-5 lg:p-6">
+            <h3 className="text-lg text-slate-900 mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              People on Floor ({people.length})
+            </h3>
+            <div className="space-y-3">
+              {people.length > 0 ? (
+                people.map(person => (
+                  <div key={person.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                    <Avatar className="h-12 w-12">
+                      {person.avatar && <AvatarImage src={person.avatar} alt={person.name} />}
+                      <AvatarFallback className="text-lg">{person.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm lg:text-base text-slate-900 truncate">{person.name}</p>
+                      <p className="text-xs lg:text-sm text-slate-500">ID: {person.trackId}</p>
+                      <p className="text-xs text-slate-400">{formatTimeAgo(person.lastSeen)}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  <MapPin className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-sm">No people detected</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
