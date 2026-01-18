@@ -7,81 +7,66 @@ use App\Http\Requests\StoreCameraRequest;
 use App\Http\Requests\UpdateCameraFloorRequest;
 use App\Http\Requests\UpdateCameraRequest;
 use App\Services\CameraService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CameraController extends Controller
 {
-    protected CameraService $cameraService;
+    private CameraService $cameraService;
 
     public function __construct(CameraService $cameraService)
     {
         $this->cameraService = $cameraService;
     }
 
-    /**
-     * List all cameras
-     */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $floorId = $request->has('floor_id') ? (int) $request->floor_id : null;
+        $floorId = $this->extractFloorIdFromRequest($request);
         $cameras = $this->cameraService->getAllCameras($floorId);
 
         return response()->json($cameras);
     }
 
-    /**
-     * Get camera details
-     */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         $camera = $this->cameraService->getCameraById((int) $id);
 
         return response()->json($camera);
     }
 
-    /**
-     * Create a new camera
-     */
-    public function store(StoreCameraRequest $request)
+    public function store(StoreCameraRequest $request): JsonResponse
     {
         $camera = $this->cameraService->createCamera($request->validated());
 
         return response()->json($camera->load('floor'), 201);
     }
 
-    /**
-     * Update camera
-     */
-    public function update(UpdateCameraRequest $request, $id)
+    public function update(UpdateCameraRequest $request, $id): JsonResponse
     {
         $camera = $this->cameraService->updateCamera((int) $id, $request->validated());
 
         return response()->json($camera);
     }
 
-    /**
-     * Delete camera
-     */
-    public function destroy(UpdateCameraRequest $request, $id)
+    public function destroy(UpdateCameraRequest $request, $id): JsonResponse
     {
         $this->cameraService->deleteCamera((int) $id);
 
         return response()->json(null, 204);
     }
 
-    /**
-     * Update camera floor assignment
-     */
-    public function updateFloor(UpdateCameraFloorRequest $request, $id)
+    public function updateFloor(UpdateCameraFloorRequest $request, $id): JsonResponse
     {
-        $camera = $this->cameraService->updateCamera((int) $id, [
-            'floor_id' => $request->validated()['floor_id']
-        ]);
+        $updateResult = $this->cameraService->updateCameraFloor(
+            (int) $id, 
+            $request->validated()['floor_id']
+        );
 
-        return response()->json([
-            'success' => true,
-            'message' => "Camera floor updated to {$camera->floor->name}",
-            'camera' => $camera
-        ]);
+        return response()->json($updateResult);
+    }
+
+    private function extractFloorIdFromRequest(Request $request): ?int
+    {
+        return $request->has('floor_id') ? (int) $request->floor_id : null;
     }
 }

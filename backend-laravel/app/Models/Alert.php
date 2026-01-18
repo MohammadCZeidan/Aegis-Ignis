@@ -22,6 +22,7 @@ class Alert extends Model
         'confidence',
         'fire_type',
         'screenshot_path',
+        'image', // Add support for base64 image data
         'detected_at',
     ];
 

@@ -5,22 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReportFireDetectionRequest;
 use App\Services\FireDetectionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FireDetectionController extends Controller
 {
-    protected FireDetectionService $fireDetectionService;
+    private FireDetectionService $fireDetectionService;
 
     public function __construct(FireDetectionService $fireDetectionService)
     {
         $this->fireDetectionService = $fireDetectionService;
     }
 
-    /**
-     * Report fire detection from live camera feed
-     * This endpoint is called by the fire detection service
-     */
-    public function reportDetection(ReportFireDetectionRequest $request)
+    public function reportDetection(ReportFireDetectionRequest $request): JsonResponse
     {
         $result = $this->fireDetectionService->reportDetection($request->validated());
 
@@ -32,37 +29,38 @@ class FireDetectionController extends Controller
         ], 201);
     }
 
-    /**
-     * Get fire events
-     */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $floorId = $request->has('floor_id') ? (int) $request->floor_id : null;
-        $isResolved = $request->has('is_resolved') ? filter_var($request->is_resolved, FILTER_VALIDATE_BOOLEAN) : null;
-
-        $events = $this->fireDetectionService->getAllFireEvents($floorId, $isResolved);
+        $filters = $this->extractFiltersFromRequest($request);
+        $events = $this->fireDetectionService->getAllFireEvents(
+            $filters['floor_id'], 
+            $filters['is_resolved']
+        );
 
         return response()->json($events);
     }
 
-    /**
-     * Get fire event details
-     */
-    public function show($id)
+    public function show($id): JsonResponse
     {
         $event = $this->fireDetectionService->getFireEventById((int) $id);
 
         return response()->json($event);
     }
 
-    /**
-     * Resolve fire event
-     */
-    public function resolve(Request $request, $id)
+    public function resolve(Request $request, $id): JsonResponse
     {
         $event = $this->fireDetectionService->resolveFireEvent((int) $id);
 
         return response()->json($event);
+    }
+
+    private function extractFiltersFromRequest(Request $request): array
+    {
+        return [
+            'floor_id' => $request->has('floor_id') ? (int) $request->floor_id : null,
+            'is_resolved' => $request->has('is_resolved') ? 
+                filter_var($request->is_resolved, FILTER_VALIDATE_BOOLEAN) : null,
+        ];
     }
 }
 
