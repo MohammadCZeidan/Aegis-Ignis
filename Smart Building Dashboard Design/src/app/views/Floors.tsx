@@ -157,7 +157,7 @@ export function Floors() {
                 </div>
 
                 <Badge variant={occupancyPercent > 80 ? 'destructive' : 'secondary'}>
-                  {occupancyPercent}% Capacity
+                  {occupancyPercent}% Utilization
                 </Badge>
               </div>
             </Card>

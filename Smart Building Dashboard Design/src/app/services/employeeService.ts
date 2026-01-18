@@ -3,7 +3,7 @@
  * Handles employee data and face registration
  */
 
-const BACKEND_API = 'http://localhost:8000/api/v1';
+const BACKEND_API = 'http://35.180.117.85/api/v1';
 
 export interface Employee {
   id: string;
