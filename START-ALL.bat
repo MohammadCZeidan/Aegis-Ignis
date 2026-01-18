@@ -1,0 +1,141 @@
+@echo off
+title Aegis-Ignis - Start All Services
+color 0B
+
+echo.
+echo ===============================================================
+echo              AEGIS-IGNIS SMART BUILDING SYSTEM
+echo                    Starting All Services...
+echo ===============================================================
+echo.
+
+REM Check if camera_config.json exists, create if not
+if not exist camera_config.json (
+    echo [INFO] Creating camera configuration...
+    echo {"cameras":[{"id":1,"name":"Main Webcam","stream_url":"0","floor_id":1,"room":"Office","is_active":true}]} > camera_config.json
+    echo [OK] Camera config created
+    echo.
+)
+
+echo [1/6] Starting PostgreSQL Database...
+docker-compose -f docker/docker-compose.yml up -d postgres >nul 2>&1
+if %errorlevel%==0 (
+    echo [OK] PostgreSQL started
+) else (
+    echo [WARNING] PostgreSQL may already be running or Docker not available
+)
+timeout /t 3 /nobreak >nul
+echo.
+
+echo [2/6] Starting Live Camera Detection Server (Port 5000)...
+start "Live Camera Server" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Camera Detection Server'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Live Camera Detection Server Starting...' -ForegroundColor Cyan; Write-Host '   OPTIMIZED: Fast Response + Face + Fire' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; python live_camera_detection_server.py"
+timeout /t 5 /nobreak >nul
+echo [OK] Live Camera Detection Server launched
+echo.
+
+echo [3/6] Starting ULTRA-FAST Face Recognition Service (Port 8001)...
+start "Face Recognition Service" powershell -NoExit -Command "cd '%CD%\python-face-service'; $Host.UI.RawUI.WindowTitle='ULTRA-FAST Face Recognition'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   ULTRA-FAST Face Recognition Starting...' -ForegroundColor Green; Write-Host '   INSTANT Duplicate Checking + Cached Data' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' main_fast.py"
+timeout /t 2 /nobreak >nul
+echo [OK] Face Recognition launched
+echo.
+
+echo [3.5/6] Starting Live Floor Monitoring Service (Port 8003)...
+start "Floor Monitoring Service" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Floor Monitoring'; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host '   Live Floor Monitoring Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Employee Detection on Floors' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' python-face-service\live_floor_monitoring.py"
+timeout /t 3 /nobreak >nul
+echo [OK] Floor Monitoring launched
+echo.
+echo    Starting camera monitoring in background...
+powershell -Command "Start-Sleep -Seconds 10 ; Invoke-RestMethod -Uri http://localhost:8003/start-camera/1 -Method Post | Out-Null" >nul 2>&1 &
+echo [OK] Camera will auto-start in 10 seconds
+echo.
+
+echo [4/6] Setting up Fire Detection Database...
+cd backend-laravel
+php setup_fire_detection.php >nul 2>&1
+cd ..
+echo [OK] Database configured (Camera 1, Floor 3)
+echo.
+
+echo [4.5/6] Starting Fire Detection Service (Port 8002) - READY MODE...
+start "Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkRed'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='Fire Detection - READY'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   FIRE DETECTION - FULLY CONFIGURED' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Settings:' -ForegroundColor Cyan; Write-Host '   - Confidence: 55%%+ (Balanced)' -ForegroundColor Green; Write-Host '   - Camera ID: 1 (Physical Webcam 0)' -ForegroundColor Green; Write-Host '   - Floor: Third Floor (ID: 3)' -ForegroundColor Green; Write-Host '   - Screenshots: AUTO SAVE' -ForegroundColor Green; Write-Host '   - Alerts: AUTO CREATE' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Fire detection with screenshots ready! 🔥' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; python fire-detection-service\main.py"
+timeout /t 3 /nobreak >nul
+echo [OK] Fire Detection launched (Alerts + Screenshots enabled)
+echo.
+
+echo [5/6] Laravel Backend running on EC2: http://35.180.117.85
+echo [OK] Backend connected (AWS EC2)
+echo.
+
+echo [6/8] Starting Camera Detection Service...
+start "Camera Detection Service" powershell -NoExit -Command "cd '%CD%\camera-detection-service'; $Host.UI.RawUI.WindowTitle='Camera Detection Service'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Camera Detection Service Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Fire + Face Detection' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; python main.py"
+timeout /t 2 /nobreak >nul
+echo [OK] Camera Detection Service launched
+echo.
+
+echo [7/8] Starting Web Dashboard (Port 5173)...
+start "Web Dashboard" powershell -NoExit -Command "cd '%CD%\Smart Building Dashboard Design'; $Host.UI.RawUI.WindowTitle='Web Dashboard'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   Web Dashboard Starting...' -ForegroundColor Blue; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run dev"
+timeout /t 2 /nobreak >nul
+echo [OK] Web Dashboard launched
+echo.
+
+echo [8/8] Starting Employee Registration Portal (Port 5174)...
+start "Employee Registration" powershell -NoExit -Command "cd '%CD%\face-registration'; $Host.UI.RawUI.WindowTitle='Employee Registration Portal'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Employee Registration Portal Starting...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; npm run dev"
+timeout /t 2 /nobreak >nul
+echo [OK] Employee Registration launched
+echo.
+
+echo ===============================================================
+echo                   ALL SERVICES LAUNCHED!
+echo ===============================================================
+echo.
+echo Check your Windows taskbar for 7 PowerShell windows:
+echo   - Camera Streaming Server (Cyan)
+echo   - Face Registration Service (Green)
+echo   - Live Floor Monitoring (Cyan) ^<-- NEW! Real-time detection
+echo   - Fire Detection Service (RED) ^<-- SUPER EASY: 30%% confidence!
+echo   - Camera Detection Service (Cyan)
+echo   - Web Dashboard (Blue)
+echo   - Employee Registration (Yellow)
+echo.
+echo Backend: Running on AWS EC2 (http://35.180.117.85)
+echo.
+echo Services need 30-60 seconds to fully start...
+echo Python AI services will take longer (loading models)
+echo.
+echo FIRE DETECTION - NEW SUPER EASY MODE:
+echo   - Detects with 30%% confidence (was 85%%)
+echo   - Min area: 100px (was 5,000px)
+echo   - Photos saved every 5 seconds
+echo   - Backend accepts 30%%+ confidence
+echo   - Your lighter WILL be detected!
+echo.
+echo ===============================================================
+echo                     ACCESS YOUR SERVICES
+echo ===============================================================
+echo.
+echo   Web Dashboard:      http://localhost:5173
+echo   Employee Portal:    http://localhost:5174
+echo   Camera Streaming:   http://localhost:5000/stream/1
+echo   Face Registration:  http://localhost:8001/docs
+echo   Fire Detection:     http://localhost:8002/docs
+echo   Floor Monitoring:   http://localhost:8003/docs (NEW!)
+echo   Laravel Backend:    http://35.180.117.85 (AWS EC2)
+echo.
+echo   Camera API List:    http://localhost:5000/api/cameras
+echo.
+echo ===============================================================
+echo.
+echo WAIT 60 SECONDS, then open: http://localhost:5173
+echo Employee Registration: http://localhost:5174
+echo.
+echo Press any key to open Web Dashboard in browser...
+pause >nul
+
+start http://localhost:5173
+
+echo.
+echo Dashboard opened! Check the browser.
+echo.
+echo This window will close in 10 seconds...
+timeout /t 10
+

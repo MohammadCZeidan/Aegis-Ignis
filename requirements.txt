@@ -1,0 +1,30 @@
+# Aegis-Ignis Python Dependencies
+# Install with: pip install -r requirements.txt
+# Requires Python 3.12.x
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Computer Vision
+opencv-python==4.9.0.80
+opencv-contrib-python==4.9.0.80
+numpy==1.26.3
+Pillow==10.2.0
+
+# Face Recognition (Python 3.12 compatible)
+insightface==0.7.3
+onnxruntime==1.17.0
+
+# Fire Detection
+tensorflow==2.15.0
+keras==2.15.0
+
+# Utilities
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Database Drivers
+psycopg2-binary==2.9.9
+pymysql==1.1.0
