@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { authService } from '../services/auth';
 import { useApp } from '../contexts/AppContext';
+import logo from '../../assets/aegis-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,13 +32,16 @@ export function Header({ onLogout }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 w-full">
+    <header className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200/50 px-6 py-4 w-full backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="font-bold text-slate-900">{buildingName}</h1>
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            System Online
-          </Badge>
+          <div>
+            <h1 className="font-bold text-slate-900">{buildingName}</h1>
+            <Badge variant="outline" className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+              System Online
+            </Badge>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">

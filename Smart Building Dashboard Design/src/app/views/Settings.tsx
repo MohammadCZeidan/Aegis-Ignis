@@ -48,7 +48,10 @@ export function Settings() {
 
   const loadBuildingConfig = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/building/config');
+      const token = localStorage.getItem('aegis_auth_token');
+      const response = await fetch('http://localhost:8000/api/v1/building/config', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.data) {
@@ -283,9 +286,13 @@ export function Settings() {
             <Button 
               onClick={async () => {
                 try {
-                  const response = await fetch('http://localhost:8000/api/v1/building/config', {
+                  const token = localStorage.getItem('aegis_auth_token');
+                  const response = await fetch('http://35.180.117.85/api/v1/building/config', {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
                     body: JSON.stringify({ 
                       name: buildingName, 
                       total_floors: totalFloors 

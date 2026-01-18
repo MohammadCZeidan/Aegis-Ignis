@@ -79,12 +79,12 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Active Cameras"
-          value={`${metrics.onlineCameras}/${metrics.totalCameras}`}
-          icon={Video}
-          status={metrics.onlineCameras < metrics.totalCameras ? 'warning' : 'normal'}
-          subtitle="Monitoring in progress"
-          onClick={() => navigate('/cameras')}
+          title="Active Alerts"
+          value={metrics.activeAlerts}
+          icon={AlertTriangle}
+          status={metrics.criticalAlerts > 0 ? 'critical' : metrics.activeAlerts > 0 ? 'warning' : 'normal'}
+          subtitle={metrics.criticalAlerts > 0 ? `${metrics.criticalAlerts} critical` : 'All systems normal'}
+          onClick={() => navigate('/alerts')}
         />
         
         <MetricCard
@@ -106,12 +106,12 @@ export function Dashboard() {
         />
         
         <MetricCard
-          title="Active Alerts"
-          value={metrics.activeAlerts}
-          icon={AlertTriangle}
-          status={metrics.criticalAlerts > 0 ? 'critical' : metrics.activeAlerts > 0 ? 'warning' : 'normal'}
-          subtitle={metrics.criticalAlerts > 0 ? `${metrics.criticalAlerts} critical` : 'All systems normal'}
-          onClick={() => navigate('/alerts')}
+          title="Active Cameras"
+          value={`${metrics.onlineCameras}/${metrics.totalCameras}`}
+          icon={Video}
+          status={metrics.onlineCameras < metrics.totalCameras ? 'warning' : 'normal'}
+          subtitle="Monitoring in progress"
+          onClick={() => navigate('/cameras')}
         />
       </div>
 

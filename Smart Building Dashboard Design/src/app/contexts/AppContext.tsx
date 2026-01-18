@@ -18,7 +18,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadBuildingName = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/building/config');
+        const token = localStorage.getItem('aegis_auth_token');
+        const response = await fetch('http://35.180.117.85/api/v1/building/config', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
         const data = await response.json();
         if (data.success && data.data?.name) {
           setBuildingNameState(data.data.name);

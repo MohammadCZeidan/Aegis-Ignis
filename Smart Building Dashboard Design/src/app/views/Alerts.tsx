@@ -6,8 +6,8 @@ import { AlertTriangle, Flame, CheckCircle, Building2, Camera, Clock } from 'luc
 import { dataService } from '../services/dataService';
 import { toast } from 'react-hot-toast';
 
-const LARAVEL_API_URL = 'http://localhost:8000/api/v1';
-const LARAVEL_BASE_URL = 'http://localhost:8000';
+const LARAVEL_API_URL = 'http://35.180.117.85/api/v1';
+const LARAVEL_BASE_URL = 'http://35.180.117.85';
 
 interface Alert {
   id: number;
@@ -20,6 +20,7 @@ interface Alert {
   confidence: number;
   fire_type: string;
   screenshot_path: string;
+  image?: string; // Base64 encoded image data
   detected_at: string;
   status: string;
   resolved?: boolean;
@@ -217,13 +218,16 @@ export function Alerts() {
                   {floorAlerts.map((alert) => (
                     <Card key={alert.id} className={`overflow-hidden ${alert.status === 'active' ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
                       {/* Screenshot */}
-                      {alert.screenshot_path && (
+                      {(alert.image || alert.screenshot_path) && (
                         <div className="relative bg-slate-900 aspect-video">
                           <img 
-                            src={`${LARAVEL_BASE_URL}${alert.screenshot_path}`}
+                            src={alert.image ? `data:image/jpeg;base64,${alert.image}` : `${LARAVEL_BASE_URL}${alert.screenshot_path}`}
                             alt="Fire detection"
                             className="w-full h-full object-cover"
+                            onLoad={() => console.log(`Image loaded for alert ${alert.id}`)}
                             onError={(e) => {
+                              console.error(`Image failed to load for alert ${alert.id}:`, e);
+                              console.log(`Image source:`, alert.image ? 'base64 data' : `${LARAVEL_BASE_URL}${alert.screenshot_path}`);
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
@@ -233,6 +237,13 @@ export function Alerts() {
                           </div>
                         </div>
                       )}
+                      
+                      {/* Debug Info */}
+                      <div className="px-4 py-2 bg-gray-100 text-xs">
+                        <div>Alert #{alert.id}</div>
+                        <div>Image data: {alert.image ? 'YES (base64)' : 'NO'}</div>
+                        <div>Screenshot path: {alert.screenshot_path || 'NONE'}</div>
+                      </div>
                       
                       {/* Alert Details */}
                       <div className="p-4">

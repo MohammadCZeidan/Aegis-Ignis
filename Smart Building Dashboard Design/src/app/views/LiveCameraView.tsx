@@ -38,7 +38,7 @@ export default function LiveCameraView() {
 
   const fetchCameras = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/cameras', {
+      const response = await fetch('http://35.180.117.85/api/v1/cameras', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('aegis_auth_token')}`,
         },
@@ -178,7 +178,7 @@ export default function LiveCameraView() {
           if (!face.embedding) continue;
 
           try {
-            const identifyResponse = await fetch('http://localhost:8000/api/v1/employees/identify-face', {
+            const identifyResponse = await fetch('http://35.180.117.85/api/v1/employees/identify-face', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ embedding: face.embedding }),

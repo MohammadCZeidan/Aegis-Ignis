@@ -45,7 +45,7 @@ export default function FloorMonitoring() {
   useEffect(() => {
     const loadFloors = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/floors');
+        const response = await fetch('http://35.180.117.85/api/v1/floors');
         const data = await response.json();
         setFloors(data);
         if (data.length > 0 && !selectedFloor) {
@@ -66,21 +66,28 @@ export default function FloorMonitoring() {
 
     const loadFloorData = async () => {
       try {
-        // Get presence data
+        // Get LIVE presence data from backend (which gets it from monitoring service)
         const presenceResponse = await fetch(
-          `http://localhost:8000/api/v1/presence/floor/${selectedFloor}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
+          `http://35.180.117.85/api/v1/presence/floor-live/${selectedFloor}`
         );
         const presenceData = await presenceResponse.json();
-        setPresence(presenceData);
+        
+        // Transform the data to match PresenceRecord interface
+        const transformedPresence = (presenceData.people || []).map((person: any) => ({
+          employee_id: person.employee_id,
+          employee_name: person.name,
+          floor_id: selectedFloor,
+          room_location: person.department || 'Unknown',
+          last_seen_at: person.last_seen || new Date().toISOString(),
+          confidence: 1.0, // Live monitoring is confident
+          face_photo_path: null // Don't show faces, just names
+        }));
+        
+        setPresence(transformedPresence);
 
         // Get fire detections from alerts endpoint
         const fireResponse = await fetch(
-          `http://localhost:8000/api/v1/alerts/by-floor/${selectedFloor}`,
+          `http://35.180.117.85/api/v1/alerts/by-floor/${selectedFloor}`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -205,7 +212,7 @@ export default function FloorMonitoring() {
                           {/* Face Photo */}
                           {person.face_photo_path ? (
                             <img
-                              src={`http://localhost:8000/storage/${person.face_photo_path}`}
+                              src={`http://35.180.117.85/storage/${person.face_photo_path}`}
                               alt={person.employee_name}
                               className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
                               onError={(e) => {
@@ -277,7 +284,7 @@ export default function FloorMonitoring() {
                           {detection.screenshot_path && (
                             <div className="flex-shrink-0">
                               <img
-                                src={`http://localhost:8000${detection.screenshot_path}`}
+                                src={detection.screenshot_path}
                                 alt="Fire Detection"
                                 className="w-48 h-36 object-cover rounded-lg border-2 border-red-500"
                                 onError={(e) => {
