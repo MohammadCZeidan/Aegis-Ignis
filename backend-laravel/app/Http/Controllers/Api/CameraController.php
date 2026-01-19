@@ -65,6 +65,26 @@ class CameraController extends Controller
         return response()->json($updateResult);
     }
 
+    public function updateAlertsFloor(Request $request, $id): JsonResponse
+    {
+        $floorId = $request->input('floor_id');
+        
+        if (!$floorId) {
+            return response()->json(['error' => 'floor_id is required'], 400);
+        }
+
+        // Update all alerts for this camera to the new floor
+        $updatedCount = \App\Models\Alert::where('camera_id', $id)
+            ->update(['floor_id' => $floorId]);
+
+        return response()->json([
+            'success' => true,
+            'camera_id' => $id,
+            'new_floor_id' => $floorId,
+            'updated_alerts' => $updatedCount
+        ]);
+    }
+
     private function extractFloorIdFromRequest(Request $request): ?int
     {
         return $request->has('floor_id') ? (int) $request->floor_id : null;

@@ -1,0 +1,200 @@
+name: Reset Laravel Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "RESET" to confirm deletion'
+        required: true
+        default: ''
+      delete_database:
+        description: 'Delete all database records?'
+        type: boolean
+        required: true
+        default: true
+      delete_storage:
+        description: 'Delete all storage files (photos, alerts, etc)?'
+        type: boolean
+        required: true
+        default: true
+      delete_cache:
+        description: 'Clear all caches?'
+        type: boolean
+        required: true
+        default: true
+      delete_sessions:
+        description: 'Delete all user sessions?'
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Verify Confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "RESET" ]; then
+            echo "❌ Confirmation failed. You must type 'RESET' to proceed."
+            exit 1
+          fi
+          echo "✅ Confirmation verified. Proceeding with reset..."
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Reset Laravel Application
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "🚨 Starting Laravel Application Reset..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}/backend-laravel
+            
+            # Stop services
+            echo "🛑 Stopping services..."
+            sudo systemctl stop php8.2-fpm || true
+            sudo systemctl stop nginx || true
+            
+            # Database Reset
+            if [ "${{ github.event.inputs.delete_database }}" == "true" ]; then
+              echo "🗄️ Resetting database..."
+              php artisan db:wipe --force
+              php artisan migrate:fresh --force
+              echo "✅ Database reset complete"
+            fi
+            
+            # Storage Files Deletion
+            if [ "${{ github.event.inputs.delete_storage }}" == "true" ]; then
+              echo "📁 Deleting storage files..."
+              
+              # Delete alerts
+              rm -rf storage/app/public/alerts/*
+              echo "  - Alerts deleted"
+              
+              # Delete detections
+              rm -rf storage/app/public/detections/*
+              echo "  - Detections deleted"
+              
+              # Delete employee photos
+              rm -rf storage/app/public/employees/*
+              echo "  - Employee photos deleted"
+              
+              # Delete face photos
+              rm -rf storage/app/public/faces/*
+              echo "  - Face photos deleted"
+              
+              # Delete logs
+              rm -rf storage/logs/*.log
+              echo "  - Logs deleted"
+              
+              echo "✅ Storage files deleted"
+            fi
+            
+            # Cache Clearing
+            if [ "${{ github.event.inputs.delete_cache }}" == "true" ]; then
+              echo "🧹 Clearing caches..."
+              
+              # Clear Laravel caches
+              php artisan cache:clear
+              php artisan config:clear
+              php artisan route:clear
+              php artisan view:clear
+              
+              # Delete cache files
+              rm -rf storage/framework/cache/data/*
+              
+              # Delete compiled views
+              rm -rf storage/framework/views/*
+              
+              echo "✅ Caches cleared"
+            fi
+            
+            # Sessions Deletion
+            if [ "${{ github.event.inputs.delete_sessions }}" == "true" ]; then
+              echo "🔐 Deleting sessions..."
+              rm -rf storage/framework/sessions/*
+              echo "✅ Sessions deleted"
+            fi
+            
+            # Recreate necessary directories
+            echo "📂 Recreating directory structure..."
+            mkdir -p storage/app/public/alerts
+            mkdir -p storage/app/public/detections
+            mkdir -p storage/app/public/employees
+            mkdir -p storage/app/public/faces
+            mkdir -p storage/framework/cache/data
+            mkdir -p storage/framework/sessions
+            mkdir -p storage/framework/views
+            mkdir -p storage/logs
+            
+            # Set proper permissions
+            echo "🔑 Setting permissions..."
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+            
+            # Recreate storage link
+            echo "🔗 Recreating storage link..."
+            php artisan storage:link --force
+            
+            # Restart services
+            echo "🔄 Starting services..."
+            sudo systemctl start php8.2-fpm
+            sudo systemctl start nginx
+            
+            echo "✅ Laravel Application Reset Complete!"
+          EOF
+
+      - name: Reset Fire Detection Data
+        if: github.event.inputs.delete_storage == 'true'
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "🔥 Resetting Fire Detection Service data..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            
+            # Clear any temporary files or detection caches
+            rm -rf fire-detection-service/__pycache__/*
+            rm -rf fire-detection-service/*.pyc
+            
+            echo "✅ Fire Detection data reset"
+          EOF
+
+      - name: Reset Face Recognition Data
+        if: github.event.inputs.delete_storage == 'true'
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "👤 Resetting Face Recognition Service data..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            
+            # Clear cache
+            rm -rf python-face-service/__pycache__/*
+            rm -rf python-face-service/*.pyc
+            
+            echo "✅ Face Recognition data reset"
+          EOF
+
+      - name: Reset Summary
+        if: success()
+        run: |
+          echo "🎉 Reset Complete!"
+          echo ""
+          echo "Reset Actions Performed:"
+          echo "- Database Reset: ${{ github.event.inputs.delete_database }}"
+          echo "- Storage Files Deleted: ${{ github.event.inputs.delete_storage }}"
+          echo "- Caches Cleared: ${{ github.event.inputs.delete_cache }}"
+          echo "- Sessions Deleted: ${{ github.event.inputs.delete_sessions }}"
+          echo ""
+          echo "⚠️ Your Laravel application has been reset to a clean state."
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Reset failed! Please check the logs above."

@@ -38,6 +38,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/cameras', [App\Http\Controllers\Api\CameraController::class, 'index']);
     Route::get('/cameras/{id}', [App\Http\Controllers\Api\CameraController::class, 'show']);
     Route::patch('/cameras/{id}/floor', [App\Http\Controllers\Api\CameraController::class, 'updateFloor']);
+    Route::patch('/cameras/{id}/update-alerts-floor', [App\Http\Controllers\Api\CameraController::class, 'updateAlertsFloor']);
     Route::get('/employees', [App\Http\Controllers\Api\EmployeeControllerSimple::class, 'indexSimple']);
     
     // Public endpoints (for services)

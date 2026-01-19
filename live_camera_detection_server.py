@@ -391,6 +391,7 @@ class CameraStream:
                         
                         if current_time - last_alert > FIRE_ALERT_COOLDOWN:
                             print(f"🚨 Sending FIRE ALERT")
+                            print(f"   Camera {self.camera_id} current floor_id: {self.floor_id}")
                             success = send_fire_alert(
                                 self.camera_id, self.name, self.floor_id,
                                 self.room, annotated_frame, confidence, "fire"
@@ -534,6 +535,22 @@ def get_snapshot(camera_id):
         "timestamp": datetime.now().isoformat()
     })
 
+@app.route('/api/cameras/<int:camera_id>/status')
+def get_camera_status(camera_id):
+    """Get current camera status including floor_id"""
+    if camera_id in cameras:
+        cam = cameras[camera_id]
+        return jsonify({
+            "camera_id": camera_id,
+            "name": cam.name,
+            "floor_id": cam.floor_id,
+            "room": cam.room,
+            "is_active": cam.is_active,
+            "running": cam.running
+        })
+    else:
+        return jsonify({"error": "Camera not found"}), 404
+
 @app.route('/api/cameras/update-config', methods=['POST'])
 def update_camera_config():
     """Update camera floor assignments in config file"""
@@ -577,6 +594,7 @@ def update_camera_config():
                 cameras[camera_id].floor_id = floor_id
                 cameras[camera_id].room = location
                 print(f"  📹 Camera {camera_id}: Floor {old_floor} → {floor_id}, Room '{old_room}' → '{location}'")
+                print(f"  ℹ️  New alerts will go to floor {floor_id}, old alerts stay on floor {old_floor}")
             else:
                 print(f"  ⚠ Camera {camera_id} not found in active cameras")
         
