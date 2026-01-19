@@ -5,9 +5,10 @@ import { Card } from '../components/ui/card';
 import { AlertTriangle, Flame, CheckCircle, Building2, Camera, Clock } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { toast } from 'react-hot-toast';
+import { API_CONFIG } from '../../config/api';
 
-const LARAVEL_API_URL = 'http://35.180.117.85/api/v1';
-const LARAVEL_BASE_URL = 'http://35.180.117.85';
+const LARAVEL_API_URL = API_CONFIG.BACKEND_API;
+const LARAVEL_BASE_URL = API_CONFIG.BACKEND_API.replace('/api/v1', '');
 
 interface Alert {
   id: number;

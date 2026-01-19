@@ -36,7 +36,7 @@ app.add_middleware(
 )
 
 # Configuration
-LARAVEL_API_URL = "http://35.180.117.85/api/v1"
+LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
 FACE_MATCH_THRESHOLD = 0.6  # Cosine similarity threshold
 
 # Initialize face detection model

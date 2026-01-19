@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { dataService, type Employee } from '../services/dataService';
+import { API_CONFIG, buildBackendUrl, getStorageUrl } from '../../config/api';
 
 interface FloorData {
   id: number;
@@ -45,7 +46,7 @@ export default function FloorMonitoring() {
   useEffect(() => {
     const loadFloors = async () => {
       try {
-        const response = await fetch('http://35.180.117.85/api/v1/floors');
+        const response = await fetch(buildBackendUrl('/floors'));
         const data = await response.json();
         setFloors(data);
         if (data.length > 0 && !selectedFloor) {
@@ -68,7 +69,7 @@ export default function FloorMonitoring() {
       try {
         // Get LIVE presence data from backend (which gets it from monitoring service)
         const presenceResponse = await fetch(
-          `http://35.180.117.85/api/v1/presence/floor-live/${selectedFloor}`
+          buildBackendUrl(`/presence/floor-live/${selectedFloor}`)
         );
         const presenceData = await presenceResponse.json();
         
@@ -87,7 +88,7 @@ export default function FloorMonitoring() {
 
         // Get fire detections from alerts endpoint
         const fireResponse = await fetch(
-          `http://35.180.117.85/api/v1/alerts/by-floor/${selectedFloor}`,
+          buildBackendUrl(`/alerts/by-floor/${selectedFloor}`),
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -212,7 +213,7 @@ export default function FloorMonitoring() {
                           {/* Face Photo */}
                           {person.face_photo_path ? (
                             <img
-                              src={`http://35.180.117.85/storage/${person.face_photo_path}`}
+                              src={getStorageUrl(person.face_photo_path)}
                               alt={person.employee_name}
                               className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
                               onError={(e) => {

@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import { API_CONFIG, buildBackendUrl } from '../../config/api';
 import {
   Select,
   SelectContent,
@@ -319,7 +320,7 @@ export function Settings() {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem('aegis_auth_token');
-                  const response = await fetch('http://35.180.117.85/api/v1/building/config', {
+                  const response = await fetch(buildBackendUrl('/building/config'), {
                     method: 'PUT',
                     headers: { 
                       'Content-Type': 'application/json',
