@@ -20,6 +20,15 @@ jobs:
     name: Run Backend Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    
+    env:
+      APP_KEY: base64:test1234567890abcdefghijklmnopqrstuvwxyz1234567890ab=
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      CACHE_DRIVER: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
 
     steps:
       - name: Checkout code
@@ -41,14 +50,6 @@ jobs:
         run: |
           cd backend-laravel
           php artisan test
-        env:
-          APP_KEY: base64:test1234567890abcdefghijklmnopqrstuvwxyz1234567890ab=
-          APP_ENV: testing
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ':memory:'
-          CACHE_DRIVER: array
-          SESSION_DRIVER: array
-          QUEUE_CONNECTION: sync
 
       - name: ✅ Tests Passed
         if: success()
