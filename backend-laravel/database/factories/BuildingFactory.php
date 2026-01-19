@@ -13,9 +13,8 @@ class BuildingFactory extends Factory
     {
         return [
             'name' => fake()->company() . ' Building',
+            'total_floors' => fake()->numberBetween(1, 10),
             'address' => fake()->address(),
-            'floors_count' => fake()->numberBetween(1, 10),
-            'is_active' => true,
         ];
     }
 }
