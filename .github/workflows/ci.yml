@@ -1,0 +1,146 @@
+name: CI - Tests and Linting
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - develop
+      - staging
+
+jobs:
+  laravel-tests:
+    name: Laravel Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json
+          coverage: none
+
+      - name: Install Composer dependencies
+        working-directory: ./backend-laravel
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Prepare Laravel Application
+        working-directory: ./backend-laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+          php artisan cache:clear
+
+      - name: Run Tests
+        working-directory: ./backend-laravel
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+        run: php artisan test
+
+  python-linting:
+    name: Python Services Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pylint
+
+      - name: Lint Fire Detection Service
+        continue-on-error: true
+        run: |
+          cd fire-detection-service
+          pip install -r requirements.txt
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Lint Face Recognition Service
+        continue-on-error: true
+        run: |
+          cd python-face-service
+          pip install -r requirements.txt
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
+
+  frontend-tests:
+    name: Frontend Dashboard Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'Smart Building Dashboard Design/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./Smart Building Dashboard Design
+        run: npm ci
+
+      - name: Run Linting
+        working-directory: ./Smart Building Dashboard Design
+        run: npm run lint || true
+
+      - name: Build Application
+        working-directory: ./Smart Building Dashboard Design
+        run: npm run build
+
+      - name: Check Build Size
+        working-directory: ./Smart Building Dashboard Design
+        run: |
+          echo "📊 Build Size Analysis:"
+          du -sh dist/
+          ls -lh dist/
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'

@@ -129,26 +129,58 @@ export function Settings() {
         let streamingServerUpdated = false;
         try {
           console.log('📝 Updating camera streaming server...');
+          console.log('Sending assignments:', cameraAssignments);
           const streamResponse = await fetch('http://localhost:5000/api/cameras/update-config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ assignments: cameraAssignments })
           });
           
+          console.log('Stream server response status:', streamResponse.status);
           if (streamResponse.ok) {
             const result = await streamResponse.json();
             console.log('✓ Streaming server updated:', result);
             streamingServerUpdated = true;
+          } else {
+            console.error('Stream server error:', await streamResponse.text());
           }
         } catch (streamError) {
-          console.warn('⚠ Streaming server not available');
+          console.error('⚠ Streaming server error:', streamError);
+        }
+        
+        // 3. Update floor monitoring service
+        let floorMonitoringUpdated = false;
+        try {
+          console.log('📝 Updating floor monitoring service...');
+          console.log('Sending assignments:', cameraAssignments);
+          const floorResponse = await fetch('http://localhost:8003/api/cameras/update-floor-assignments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignments: cameraAssignments })
+          });
+          
+          console.log('Floor monitoring response status:', floorResponse.status);
+          if (floorResponse.ok) {
+            const result = await floorResponse.json();
+            console.log('✓ Floor monitoring updated:', result);
+            floorMonitoringUpdated = true;
+          } else {
+            console.error('Floor monitoring error:', await floorResponse.text());
+          }
+        } catch (floorError) {
+          console.error('⚠ Floor monitoring error:', floorError);
         }
         
         // Show success notification
-        if (streamingServerUpdated) {
+        if (streamingServerUpdated && floorMonitoringUpdated) {
           notificationService.success('Camera assignments saved successfully!', {
-            description: 'Database and streaming server updated. Cameras are now using new floor assignments.',
+            description: 'Database, streaming server, and floor monitoring updated. All services now use new floor assignments.',
             duration: 4000,
+          });
+        } else if (streamingServerUpdated || floorMonitoringUpdated) {
+          notificationService.warning('Camera assignments partially saved', {
+            description: `Database updated. ${streamingServerUpdated ? 'Streaming ✓' : 'Streaming ✗'} ${floorMonitoringUpdated ? 'Monitoring ✓' : 'Monitoring ✗'}`,
+            duration: 5000,
           });
         } else {
           notificationService.warning('Camera assignments saved to database', {

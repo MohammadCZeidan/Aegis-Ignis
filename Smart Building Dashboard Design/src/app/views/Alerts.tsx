@@ -238,13 +238,6 @@ export function Alerts() {
                         </div>
                       )}
                       
-                      {/* Debug Info */}
-                      <div className="px-4 py-2 bg-gray-100 text-xs">
-                        <div>Alert #{alert.id}</div>
-                        <div>Image data: {alert.image ? 'YES (base64)' : 'NO'}</div>
-                        <div>Screenshot path: {alert.screenshot_path || 'NONE'}</div>
-                      </div>
-                      
                       {/* Alert Details */}
                       <div className="p-4">
                         <div className="flex items-start justify-between mb-3">

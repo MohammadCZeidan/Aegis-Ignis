@@ -1,0 +1,132 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Laravel Backend
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "📦 Navigating to application directory..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            
+            echo "🔄 Pulling latest changes..."
+            git pull origin main
+            
+            echo "📝 Installing Composer dependencies..."
+            cd backend-laravel
+            composer install --no-dev --optimize-autoloader
+            
+            echo "⚙️ Running migrations..."
+            php artisan migrate --force
+            
+            echo "🧹 Clearing caches..."
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
+            
+            echo "📦 Optimizing application..."
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            
+            echo "🔑 Setting permissions..."
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo chmod -R 775 storage bootstrap/cache
+            
+            echo "🔄 Restarting services..."
+            sudo systemctl restart php8.2-fpm
+            sudo systemctl restart nginx
+            
+            echo "✅ Deployment completed successfully!"
+          EOF
+
+      - name: Deploy Fire Detection Service
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "🔥 Deploying Fire Detection Service..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            
+            # Install Python dependencies
+            cd fire-detection-service
+            pip3 install -r requirements.txt
+            
+            # Restart fire detection service
+            sudo systemctl restart fire-detection || echo "Fire detection service not configured as systemd service"
+            
+            echo "✅ Fire Detection Service deployed!"
+          EOF
+
+      - name: Deploy Face Recognition Service
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "👤 Deploying Face Recognition Service..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            
+            # Install Python dependencies
+            cd python-face-service
+            pip3 install -r requirements.txt
+            
+            # Restart face service
+            sudo systemctl restart face-service || echo "Face service not configured as systemd service"
+            
+            echo "✅ Face Recognition Service deployed!"
+          EOF
+
+      - name: Deploy Frontend Dashboard
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "🎨 Deploying Frontend Dashboard..."
+            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            cd "Smart Building Dashboard Design"
+            
+            # Install dependencies and build
+            npm install
+            npm run build
+            
+            echo "✅ Frontend Dashboard deployed!"
+          EOF
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "🎉 All services deployed successfully!"
+          echo "- Laravel Backend ✅"
+          echo "- Fire Detection Service ✅"
+          echo "- Face Recognition Service ✅"
+          echo "- Frontend Dashboard ✅"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Please check the logs above."

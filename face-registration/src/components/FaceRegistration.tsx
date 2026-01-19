@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Check, X, Loader2, LogOut, Users } from 'lucide-react';
+import { Camera, Check, X, Loader2, LogOut, Users, MapPin, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface FaceRegistrationProps {
   onLogout: () => void;
@@ -13,6 +13,12 @@ interface FaceDetectionResult {
     confidence: number;
     embedding?: number[];
   }>;
+  ideal_head_position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 
 const DEPARTMENTS = [
@@ -38,7 +44,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [cameraReady, setCameraReady] = useState(false);
-  const [positioningMessage, setPositioningMessage] = useState('📍 Position your face in the circle');
+  const [positioningMessage, setPositioningMessage] = useState('Position your face in the circle');
   const [positioningStatus, setPositioningStatus] = useState<'good' | 'warning' | 'error'>('warning');
   const [captureEnabled, setCaptureEnabled] = useState(false);
 
@@ -57,7 +63,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
   const fetchNextEmployeeId = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/employees/next-id');
+      const response = await fetch('http://35.180.117.85/api/v1/employees/next-id');
       if (response.ok) {
         const data = await response.json();
         setEmployeeId(data.next_id);
@@ -79,10 +85,28 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (canvasRef.current && overlayCanvasRef.current && videoRef.current) {
+            // Capture canvas matches video stream size
             canvasRef.current.width = videoRef.current.videoWidth;
             canvasRef.current.height = videoRef.current.videoHeight;
-            overlayCanvasRef.current.width = videoRef.current.videoWidth;
-            overlayCanvasRef.current.height = videoRef.current.videoHeight;
+            
+            // Overlay canvas matches the DISPLAYED size (may be scaled by CSS)
+            const updateOverlaySize = () => {
+              if (overlayCanvasRef.current && videoRef.current) {
+                const rect = videoRef.current.getBoundingClientRect();
+                overlayCanvasRef.current.width = rect.width;
+                overlayCanvasRef.current.height = rect.height;
+                console.log('🎥 Canvas sizes updated:', {
+                  videoStream: { w: videoRef.current.videoWidth, h: videoRef.current.videoHeight },
+                  displaySize: { w: rect.width, h: rect.height },
+                  overlay: { w: overlayCanvasRef.current.width, h: overlayCanvasRef.current.height }
+                });
+              }
+            };
+            
+            // Wait for layout to settle, then update sizes
+            setTimeout(updateOverlaySize, 100);
+            window.addEventListener('resize', updateOverlaySize);
+            
             startFaceDetection();
           }
         };
@@ -145,24 +169,53 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
   const drawFaceDetection = (result: FaceDetectionResult) => {
     const canvas = overlayCanvasRef.current;
-    if (!canvas) return;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // DEBUG: Log what we're receiving
+    console.log('📊 Face Detection Result:', {
+      faces: result.faces_detected,
+      canvasSize: { w: canvas.width, h: canvas.height },
+      videoSize: { w: video.videoWidth, h: video.videoHeight },
+      displaySize: { w: video.offsetWidth, h: video.offsetHeight },
+      bbox: result.faces[0]?.bbox,
+      idealHead: result.ideal_head_position
+    });
 
     if (result.faces_detected === 0) {
-      setPositioningMessage('❌ No face detected - Move closer');
+      setPositioningMessage('No face detected - Move closer');
       setPositioningStatus('error');
       setCaptureEnabled(false);
     } else if (result.faces_detected > 1) {
-      setPositioningMessage('⚠️ Multiple faces - Only one person');
+      setPositioningMessage('Multiple faces detected - Only one person');
       setPositioningStatus('warning');
       setCaptureEnabled(false);
     } else {
       const face = result.faces[0];
-      const [x1, y1, x2, y2] = face.bbox;
+      
+      // CRITICAL: Scale coordinates from capture canvas to display canvas
+      // The capture canvas is videoWidth x videoHeight (e.g., 640x480)
+      // But the overlay canvas matches the video element's actual display size
+      const scaleX = canvas.width / video.videoWidth;
+      const scaleY = canvas.height / video.videoHeight;
+      
+      console.log('🔧 Scale factors:', { scaleX, scaleY });
+      
+      const [x1Raw, y1Raw, x2Raw, y2Raw] = face.bbox;
+      const x1 = x1Raw * scaleX;
+      const y1 = y1Raw * scaleY;
+      const x2 = x2Raw * scaleX;
+      const y2 = y2Raw * scaleY;
+      
+      console.log('📍 Coordinates:', { 
+        raw: [x1Raw, y1Raw, x2Raw, y2Raw],
+        scaled: [x1, y1, x2, y2]
+      });
 
       // Calculate face position relative to center
       const faceCenterX = (x1 + x2) / 2;
@@ -174,38 +227,38 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       const offsetY = faceCenterY - videoCenterY;
       const faceWidth = x2 - x1;
 
-      // Draw bounding box
+      // Draw ONE green box around detected face
       ctx.strokeStyle = '#00ff00';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
       // Provide positioning guidance
       if (Math.abs(offsetX) > 100) {
         if (offsetX > 0) {
-          setPositioningMessage('⬅️ Move LEFT');
+          setPositioningMessage('Move LEFT');
         } else {
-          setPositioningMessage('➡️ Move RIGHT');
+          setPositioningMessage('Move RIGHT');
         }
         setPositioningStatus('warning');
         setCaptureEnabled(false);
       } else if (Math.abs(offsetY) > 80) {
         if (offsetY > 0) {
-          setPositioningMessage('⬆️ Move UP');
+          setPositioningMessage('Move UP');
         } else {
-          setPositioningMessage('⬇️ Move DOWN');
+          setPositioningMessage('Move DOWN');
         }
         setPositioningStatus('warning');
         setCaptureEnabled(false);
       } else if (faceWidth < 150) {
-        setPositioningMessage('🔍 Move CLOSER');
+        setPositioningMessage('Move CLOSER');
         setPositioningStatus('warning');
         setCaptureEnabled(false);
       } else if (faceWidth > 400) {
-        setPositioningMessage('🔍 Move BACK');
+        setPositioningMessage('Move BACK');
         setPositioningStatus('warning');
         setCaptureEnabled(false);
       } else {
-        setPositioningMessage('✅ Perfect! Click Capture');
+        setPositioningMessage('Perfect! Click Capture');
         setPositioningStatus('good');
         setCaptureEnabled(true);
       }
@@ -229,7 +282,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
     setLoading(true);
     setError('');
-    setPositioningMessage('🔍 Checking for duplicates...');
+    setPositioningMessage('Checking for duplicates...');
 
     canvas.toBlob(async (blob) => {
       if (!blob) {
@@ -249,14 +302,14 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
         if (response.status === 400) {
           const errorData = await response.json();
-          setError('⚠️ ' + errorData.detail);
+          setError(errorData.detail);
           setLoading(false);
           startFaceDetection();
           return;
         }
 
         if (response.status === 503) {
-          setError('⚠️ Face Recognition Service Unavailable');
+          setError('Face Recognition Service Unavailable');
           setLoading(false);
           startFaceDetection();
           return;
@@ -264,7 +317,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          setError('❌ Face Check Failed\n' + (errorData.detail || ''));
+          setError('Face Check Failed\n' + (errorData.detail || ''));
           setLoading(false);
           startFaceDetection();
           return;
@@ -279,11 +332,11 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           const dept = result.matched_employee?.department || 'N/A';
           
           setError(
-            `👋 Already Registered!\n\n` +
+            `Already Registered!\n\n` +
             `Hi ${employeeName}! You're in the system.\n\n` +
-            `📋 Employee ID: ${employeeId}\n` +
-            `📋 Department: ${dept}\n\n` +
-            `No need to register again! 😊`
+            `Employee ID: ${employeeId}\n` +
+            `Department: ${dept}\n\n` +
+            `No need to register again!`
           );
           setLoading(false);
           startFaceDetection();
@@ -293,7 +346,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         // NO DUPLICATE - PROCEED WITH CAPTURE
         setCapturedImage(blob);
         setPreviewUrl(URL.createObjectURL(blob));
-        setPositioningMessage('✅ Face verified - Fill the form');
+        setPositioningMessage('Face verified - Fill the form');
         
         // Clear overlay
         const overlayCtx = overlayCanvasRef.current?.getContext('2d');
@@ -302,7 +355,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         }
         
       } catch (err: any) {
-        setError('⚠️ Cannot check duplicates: ' + err.message);
+        setError('Cannot check duplicates: ' + err.message);
         startFaceDetection();
       } finally {
         setLoading(false);
@@ -346,7 +399,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         role: 'employee'
       };
 
-      const createResponse = await fetch('http://localhost:8000/api/v1/employees/create-with-face', {
+      const createResponse = await fetch('http://35.180.117.85/api/v1/employees/create-with-face', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -412,7 +465,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         throw new Error('Face registration failed: ' + (faceResult.message || 'Unknown error'));
       }
 
-      setSuccess(`✅ Success! ${name} has been registered with face ID and biometric data.`);
+      setSuccess(`Success! ${name} has been registered with face ID and biometric data.`);
       
       setTimeout(() => {
         handleClear();
@@ -435,22 +488,22 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 px-6 py-5 shadow-sm">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <div className="inline-flex items-center justify-center w-10 h-10 bg-blue-600 rounded-full">
-              <Users className="h-5 w-5 text-white" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl shadow-lg">
+              <Users className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Employee Face Registration</h1>
-              <p className="text-sm text-slate-600">Register employees for access control</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">Employee Face Registration</h1>
+              <p className="text-sm text-slate-600">AI-Powered Biometric Access Control</p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 text-slate-600 hover:text-white hover:bg-gradient-to-r hover:from-slate-600 hover:to-slate-700 rounded-xl transition-all duration-200 border border-slate-200 hover:border-transparent shadow-sm hover:shadow-md"
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -459,13 +512,20 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">👤 Register New Employee</h2>
-          <p className="text-slate-600 mb-6">Capture face photo and enter employee details</p>
+      <div className="max-w-5xl mx-auto px-4 py-10">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-slate-200 p-8 lg:p-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg">
+              <Users className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-blue-900 bg-clip-text text-transparent">Register New Employee</h2>
+              <p className="text-slate-600">Capture face biometrics and enter employee details</p>
+            </div>
+          </div>
 
         {/* Video Container */}
-        <div className="relative bg-black rounded-xl overflow-hidden mb-6">
+        <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl overflow-hidden mb-8 shadow-2xl border-2 border-slate-700">
           <video
             ref={videoRef}
             autoPlay
@@ -482,53 +542,73 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
             className="absolute top-0 left-0 w-full h-full pointer-events-none"
           />
           
-          {/* Face guide circle */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-4 border-dashed border-green-400 rounded-full pointer-events-none" />
+          {/* FIXED CIRCLE in center */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 border-4 border-dashed border-cyan-400 rounded-full pointer-events-none opacity-50 animate-pulse" />
           
           {/* Status overlay */}
-          <div className="absolute top-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            {cameraReady ? '✅ Camera ready' : '🎥 Initializing camera...'}
+          <div className="absolute top-4 left-4 bg-gradient-to-r from-slate-900/90 to-blue-900/90 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg border border-white/10 flex items-center gap-2">
+            {cameraReady ? (
+              <>
+                <CheckCircle className="h-4 w-4 text-green-400" />
+                <span>Camera Ready</span>
+              </>
+            ) : (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                <span>Initializing Camera...</span>
+              </>
+            )}
           </div>
 
           {/* Positioning guide */}
           {!capturedImage && (
-            <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 ${getPositioningColor()} text-white px-6 py-3 rounded-lg text-base font-bold min-w-[320px] text-center shadow-lg`}>
-              {positioningMessage}
+            <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 ${getPositioningColor()} text-white px-8 py-4 rounded-xl text-base font-bold min-w-[360px] text-center shadow-2xl border-2 border-white/20 backdrop-blur-sm flex items-center justify-center gap-3`}>
+              {positioningStatus === 'good' && <CheckCircle className="h-5 w-5" />}
+              {positioningStatus === 'warning' && <AlertCircle className="h-5 w-5" />}
+              {positioningStatus === 'error' && <X className="h-5 w-5" />}
+              <span>{positioningMessage}</span>
             </div>
           )}
         </div>
 
           {/* Preview */}
           {previewUrl && (
-            <div className="mb-6 text-center">
-              <p className="font-semibold text-slate-700 mb-3">Captured Face:</p>
-              <img src={previewUrl} alt="Captured face" className="max-w-[200px] mx-auto border-4 border-blue-600 rounded-xl shadow-lg" />
+            <div className="mb-8 text-center bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl border border-blue-200">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <p className="font-bold text-slate-800 text-lg">Face Captured Successfully</p>
+              </div>
+              <img src={previewUrl} alt="Captured face" className="max-w-[240px] mx-auto border-4 border-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-2xl ring-4 ring-blue-100" />
             </div>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 border-2 border-red-400 text-red-900 px-6 py-4 rounded-lg shadow-md">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">👋</div>
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-300 text-red-900 px-6 py-5 rounded-xl shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <AlertCircle className="h-6 w-6 text-red-600" />
+                  </div>
                   <div className="flex-1">
-                    <p className="font-bold text-lg mb-2">Already Registered!</p>
-                    <pre className="whitespace-pre-wrap font-sans text-sm">{error}</pre>
+                    <p className="font-bold text-lg mb-2">Registration Issue</p>
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{error}</pre>
                   </div>
                 </div>
               </div>
             )}
 
             {success && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
-                <Check className="h-5 w-5" />
-                {success}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 text-green-800 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <span className="font-semibold text-base">{success}</span>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Full Name *
               </label>
               <input
@@ -537,12 +617,12 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="John Doe"
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-600 focus:outline-none text-base transition-colors"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base transition-all bg-white shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Email *
               </label>
               <input
@@ -551,12 +631,12 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="john.doe@company.com"
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-600 focus:outline-none text-base transition-colors"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base transition-all bg-white shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Password *
               </label>
               <input
@@ -566,12 +646,12 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
                 required
                 minLength={6}
                 placeholder="Minimum 6 characters"
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-600 focus:outline-none text-base transition-colors"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base transition-all bg-white shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Employee ID (Auto-generated) *
               </label>
               <input
@@ -579,19 +659,19 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
                 value={employeeId}
                 readOnly
                 disabled
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg bg-slate-100 text-slate-600 text-base cursor-not-allowed"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 text-slate-700 text-base cursor-not-allowed font-mono font-bold shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Department *
               </label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
                 required
-                className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-blue-600 focus:outline-none text-base transition-colors"
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none text-base transition-all bg-white shadow-sm"
               >
                 <option value="">Select Department</option>
                 {DEPARTMENTS.map((dept) => (
@@ -601,31 +681,31 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-4 pt-6">
               <button
                 type="button"
                 onClick={handleCapture}
                 disabled={!captureEnabled || !!capturedImage}
-                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 px-6 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500 flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               >
                 <Camera className="h-5 w-5" />
-                📸 Capture Face
+                Capture Face
               </button>
               
               <button
                 type="submit"
                 disabled={loading || !capturedImage}
-                className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500 flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               >
                 {loading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    ⏳ Registering...
+                    Registering...
                   </>
                 ) : (
                   <>
                     <Check className="h-5 w-5" />
-                    ✅ Register Employee
+                    Register Employee
                   </>
                 )}
               </button>
@@ -633,10 +713,10 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
               <button
                 type="button"
                 onClick={handleClear}
-                className="bg-slate-200 text-slate-700 py-3 px-4 rounded-lg font-semibold hover:bg-slate-300 flex items-center justify-center gap-2 transition-colors"
+                className="bg-gradient-to-r from-slate-500 to-slate-600 text-white py-4 px-6 rounded-xl font-bold hover:from-slate-600 hover:to-slate-700 flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
               >
                 <X className="h-5 w-5" />
-                🔄 Clear
+                Clear
               </button>
             </div>
           </form>

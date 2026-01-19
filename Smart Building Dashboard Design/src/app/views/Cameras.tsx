@@ -62,34 +62,14 @@ export function Cameras() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <Card className="p-4 bg-green-50 border-green-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-700 font-medium">Online Cameras</p>
-              <p className="text-2xl font-bold text-green-700">{stats.online}</p>
+              <p className="text-sm text-green-700 font-medium">Online Cameras/Total Cameras</p>
+              <p className="text-2xl font-bold text-green-700">{stats.online}/{stats.total}</p>
             </div>
             <Video className="h-8 w-8 text-green-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-blue-50 border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-blue-700 font-medium">Total Cameras</p>
-              <p className="text-2xl font-bold text-blue-700">{stats.total}</p>
-            </div>
-            <Video className="h-8 w-8 text-blue-600" />
-          </div>
-        </Card>
-
-        <Card className="p-4 bg-purple-50 border-purple-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-purple-700 font-medium">Monitoring</p>
-              <p className="text-2xl font-bold text-purple-700">{stats.monitoring}</p>
-            </div>
-            <Video className="h-8 w-8 text-purple-600" />
           </div>
         </Card>
       </div>

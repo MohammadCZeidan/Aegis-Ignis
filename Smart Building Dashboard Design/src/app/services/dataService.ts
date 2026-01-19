@@ -94,7 +94,16 @@ class DataService {
       if (response.ok) {
         const data = await response.json();
         console.log('Floors response data:', data);
-        const floors = data.floors || data.data || data || [];
+        
+        // Handle different response formats
+        let floors = data.floors || data.data || data;
+        
+        // Ensure we have an array
+        if (!Array.isArray(floors)) {
+          console.error('Floors response is not an array:', typeof floors, floors);
+          floors = [];
+        }
+        
         console.log('Parsed floors:', floors);
         this.setCachedData(cacheKey, floors);
         return floors;

@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict
@@ -547,6 +547,48 @@ async def test_clear_floor(floor_id: int):
         return {"success": True, "message": f"Cleared {count} people from floor {floor_id}"}
     else:
         return {"success": True, "message": "Floor was already empty"}
+
+
+@app.post("/api/cameras/update-floor-assignments")
+async def update_camera_floor_assignments(request: Request):
+    """Update floor assignments for monitored cameras (syncs with settings changes)"""
+    try:
+        data = await request.json()
+        assignments = data.get('assignments', [])
+        
+        updated = []
+        not_found = []
+        
+        for assignment in assignments:
+            camera_id = int(assignment['cameraId'])
+            floor_id = int(assignment['floorId'])
+            
+            # Check if this camera is being monitored
+            if camera_id in camera_floors:
+                old_floor = camera_floors[camera_id]
+                camera_floors[camera_id] = floor_id
+                
+                logger.info(f"📹 Updated Camera {camera_id}: Floor {old_floor} → {floor_id}")
+                updated.append({
+                    'camera_id': camera_id,
+                    'old_floor': old_floor,
+                    'new_floor': floor_id
+                })
+            else:
+                not_found.append(camera_id)
+        
+        logger.info(f"✅ Floor monitoring: Updated {len(updated)} camera assignments")
+        
+        return {
+            "success": True,
+            "message": f"Updated {len(updated)} camera floor assignments",
+            "updated": updated,
+            "not_monitored": not_found
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error updating floor assignments: {e}")
+        raise HTTPException(500, str(e))
 
 
 @app.on_event("startup")
