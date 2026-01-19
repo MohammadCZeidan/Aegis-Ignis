@@ -48,7 +48,25 @@ jobs:
       - name: Install Composer dependencies
         run: |
           cd backend-laravel
-          composer install --prefer-dist --no-interaction --no-progress
+          composer install --prefer-dist --no-interaction --no-progress --no-scripts
+
+      - name: Create Test Environment
+        run: |
+          cd backend-laravel
+          cat > .env << 'EOF'
+          APP_NAME=Laravel
+          APP_ENV=testing
+          APP_KEY=base64:test1234567890abcdefghijklmnopqrstuvwxyz1234567890ab=
+          APP_DEBUG=true
+          APP_URL=http://localhost
+          
+          DB_CONNECTION=sqlite
+          DB_DATABASE=:memory:
+          
+          CACHE_DRIVER=array
+          SESSION_DRIVER=array
+          QUEUE_CONNECTION=sync
+          EOF
 
       - name: Run Feature Tests
         run: |
