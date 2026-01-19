@@ -28,39 +28,24 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             
-            echo "📦 Navigating to application directory..."
-            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            echo " Navigating to application directory..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}
             
-            echo "🔄 Pulling latest changes..."
+            echo " Pulling latest changes..."
             git pull origin main
             
-            echo "📝 Installing Composer dependencies..."
+            echo " Installing Composer dependencies..."
             cd backend-laravel
-            composer install --no-dev --optimize-autoloader
+            composer install --no-dev --optimize-autoloader --no-interaction
             
-            echo "⚙️ Running migrations..."
+            echo " Running migrations..."
             php artisan migrate --force
             
-            echo "🧹 Clearing caches..."
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
-            php artisan view:clear
+            echo " Clearing and optimizing caches..."
+            php artisan optimize:clear
+            php artisan optimize
             
-            echo "📦 Optimizing application..."
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            
-            echo "🔑 Setting permissions..."
-            sudo chown -R www-data:www-data storage bootstrap/cache
-            sudo chmod -R 775 storage bootstrap/cache
-            
-            echo "🔄 Restarting services..."
-            sudo systemctl restart php8.2-fpm
-            sudo systemctl restart nginx
-            
-            echo "✅ Deployment completed successfully!"
+            echo " Laravel Backend updated!"
           EOF
 
       - name: Deploy Fire Detection Service
@@ -68,17 +53,12 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             
-            echo "🔥 Deploying Fire Detection Service..."
-            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            echo " Updating Fire Detection Service..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}/fire-detection-service
             
-            # Install Python dependencies
-            cd fire-detection-service
-            pip3 install -r requirements.txt
+            pip3 install -r requirements.txt --quiet
             
-            # Restart fire detection service
-            sudo systemctl restart fire-detection || echo "Fire detection service not configured as systemd service"
-            
-            echo "✅ Fire Detection Service deployed!"
+            echo " Fire Detection Service updated!"
           EOF
 
       - name: Deploy Face Recognition Service
@@ -86,17 +66,12 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             
-            echo "👤 Deploying Face Recognition Service..."
-            cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
+            echo " Updating Face Recognition Service..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}/python-face-service
             
-            # Install Python dependencies
-            cd python-face-service
-            pip3 install -r requirements.txt
+            pip3 install -r requirements.txt --quiet
             
-            # Restart face service
-            sudo systemctl restart face-service || echo "Face service not configured as systemd service"
-            
-            echo "✅ Face Recognition Service deployed!"
+            echo " Face Recognition Service updated!"
           EOF
 
       - name: Deploy Frontend Dashboard
@@ -104,27 +79,40 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             
-            echo "🎨 Deploying Frontend Dashboard..."
+            echo " Deploying Frontend Dashboard..."
             cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
             cd "Smart Building Dashboard Design"
             
             # Install dependencies and build
-            npm install
-            npm run build
+            npm instaUpdating Frontend Dashboard..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}
+            cd "Smart Building Dashboard Design"
             
-            echo "✅ Frontend Dashboard deployed!"
+            npm install --silent
+            npm run build
+            Restart Services
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo " Restarting all services..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}
+            
+            # Stop all services
+            ./STOP-ALL-SERVICES.bat || pkill -f "main.py" || true
+            
+            # Start all services
+            ./START-ALL.bat &
+            
+            echo " All services restarted!"
           EOF
 
       - name: Deployment Summary
         if: success()
         run: |
-          echo "🎉 All services deployed successfully!"
-          echo "- Laravel Backend ✅"
-          echo "- Fire Detection Service ✅"
-          echo "- Face Recognition Service ✅"
-          echo "- Frontend Dashboard ✅"
-
+          echo " Deployment completed successfully!"
+          echo "- Code updated via git pull"
+          echo "- Dependencies updated"
+          echo "- Services restarted"
       - name: Notify on Failure
         if: failure()
         run: |
-          echo "❌ Deployment failed! Please check the logs above."
+          echo " Deployment failed! Please check the logs above."
