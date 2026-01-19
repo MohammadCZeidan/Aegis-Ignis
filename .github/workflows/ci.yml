@@ -115,6 +115,10 @@ jobs:
         working-directory: './Smart Building Dashboard Design'
         run: npm install
 
+      - name: Ensure vite is executable
+        working-directory: './Smart Building Dashboard Design'
+        run: chmod +x node_modules/.bin/vite
+
       - name: Build Application
         working-directory: './Smart Building Dashboard Design'
         run: npm run build
