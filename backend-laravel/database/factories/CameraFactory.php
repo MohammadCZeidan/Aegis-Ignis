@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Camera;
+use App\Models\Floor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class CameraFactory extends Factory
@@ -12,13 +13,13 @@ class CameraFactory extends Factory
     public function definition(): array
     {
         return [
-            'camera_id' => 'CAM-' . fake()->unique()->numberBetween(1000, 9999),
+            'floor_id' => Floor::factory(),
             'name' => fake()->words(3, true) . ' Camera',
-            'location' => fake()->randomElement(['Entrance', 'Hallway', 'Lobby', 'Office', 'Stairwell']),
-            'floor_id' => null,
-            'ip_address' => fake()->localIpv4(),
-            'status' => fake()->randomElement(['active', 'inactive', 'maintenance']),
-            'stream_url' => 'rtsp://' . fake()->ipv4() . ':554/stream',
+            'rtsp_url' => 'rtsp://' . fake()->ipv4() . ':554/stream',
+            'position_x' => fake()->randomFloat(2, 0, 100),
+            'position_y' => fake()->randomFloat(2, 0, 100),
+            'position_z' => fake()->randomFloat(2, 0, 10),
+            'is_active' => fake()->boolean(80),
         ];
     }
 }

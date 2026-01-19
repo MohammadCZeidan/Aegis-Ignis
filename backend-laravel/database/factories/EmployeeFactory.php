@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Employee;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class EmployeeFactory extends Factory
@@ -13,11 +14,11 @@ class EmployeeFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'employee_id' => 'EMP-' . fake()->unique()->numberBetween(1000, 9999),
-            'phone' => fake()->phoneNumber(),
+            'employee_number' => 'EMP-' . fake()->unique()->numberBetween(1000, 9999),
             'department' => fake()->randomElement(['IT', 'HR', 'Finance', 'Operations', 'Sales']),
-            'position' => fake()->randomElement(['Manager', 'Developer', 'Analyst', 'Coordinator', 'Specialist']),
+            'email' => fake()->unique()->safeEmail(),
+            'password' => Hash::make('password'),
+            'role' => fake()->randomElement(['employee', 'admin', 'security']),
             'status' => 'active',
         ];
     }
