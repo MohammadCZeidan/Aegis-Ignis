@@ -37,23 +37,13 @@ jobs:
           cd backend-laravel
           composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Setup Laravel Environment
-        run: |
-          cd backend-laravel
-          cp .env.example .env
-          php artisan key:generate
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ':memory:'
-          CACHE_DRIVER: array
-          SESSION_DRIVER: array
-          QUEUE_CONNECTION: sync
-
       - name: Run Feature Tests
         run: |
           cd backend-laravel
           php artisan test
         env:
+          APP_KEY: base64:test1234567890abcdefghijklmnopqrstuvwxyz1234567890ab=
+          APP_ENV: testing
           DB_CONNECTION: sqlite
           DB_DATABASE: ':memory:'
           CACHE_DRIVER: array
