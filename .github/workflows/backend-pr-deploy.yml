@@ -32,6 +32,11 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
           coverage: none
 
+      - name: Install Composer dependencies
+        run: |
+          cd backend-laravel
+          composer install --prefer-dist --no-interaction --no-progress
+
       - name: Setup Laravel Environment
         run: |
           cd backend-laravel
@@ -43,11 +48,6 @@ jobs:
           sed -i 's/CACHE_DRIVER=.*/CACHE_DRIVER=array/' .env
           sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/' .env
           php artisan key:generate
-
-      - name: Install Composer dependencies
-        run: |
-          cd backend-laravel
-          composer install --prefer-dist --no-interaction --no-progress
 
       - name: Run Feature Tests
         run: |
