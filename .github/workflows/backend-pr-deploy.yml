@@ -32,10 +32,16 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
           coverage: none
 
-      - name: Copy .env
+      - name: Setup Laravel Environment
         run: |
           cd backend-laravel
           cp .env.example .env
+          # Use SQLite for testing
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env
+          # Disable cache driver that requires DB
+          sed -i 's/CACHE_DRIVER=.*/CACHE_DRIVER=array/' .env
+          sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/' .env
           php artisan key:generate
 
       - name: Install Composer dependencies
