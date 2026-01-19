@@ -7,12 +7,16 @@ on:
       - clean
     paths:
       - 'backend-laravel/**'
-  push:
-    branches:
-      - main
-      - clean
-    paths:
-      - 'backend-laravel/**'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'clean'
+        type: choice
+        options:
+          - main
+          - clean
 
 jobs:
   # Run tests on every PR
@@ -55,13 +59,18 @@ jobs:
         if: success()
         run: echo "All backend feature tests passed!"
 
-  # Deploy to EC2 on push to main/clean
+  # Deploy to EC2 manually
   deploy-backend:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/clean')
+    if: github.event_name == 'workflow_dispatch'
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -75,11 +84,14 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
             set -e
             cd ${{ secrets.DEPLOY_PATH || '/var/www/html/aegis-ignis' }}
-            git pull origin ${{ github.ref_name }}
+            git pull origin ${{ inputs.branch }}
             cd backend-laravel
             composer install --no-dev --optimize-autoloader --no-interaction
             php artisan migrate --force
             php artisan optimize
             chmod -R 775 storage bootstrap/cache
-            echo " Backend updated successfully!"
+            echo "✅ Backend updated successfully!"
           ENDSSH
+      
+      - name: 🚀 Deployment Complete
+        run: echo "Deployed ${{ inputs.branch }} to EC2 successfully!"
