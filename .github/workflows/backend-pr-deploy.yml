@@ -41,18 +41,24 @@ jobs:
         run: |
           cd backend-laravel
           cp .env.example .env
-          # Use SQLite for testing
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/' .env
-          # Disable cache driver that requires DB
-          sed -i 's/CACHE_DRIVER=.*/CACHE_DRIVER=array/' .env
-          sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/' .env
           php artisan key:generate
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          CACHE_DRIVER: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
 
       - name: Run Feature Tests
         run: |
           cd backend-laravel
           php artisan test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          CACHE_DRIVER: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
 
       - name: ✅ Tests Passed
         if: success()
