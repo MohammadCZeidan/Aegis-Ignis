@@ -152,7 +152,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           const formData = new FormData();
           formData.append('file', blob);
 
-          const response = await fetch('http://localhost:8001/detect-faces', {
+          const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+          const response = await fetch(`${FACE_SERVICE_URL}/detect-faces`, {
             method: 'POST',
             body: formData
           });
@@ -296,7 +297,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         const formData = new FormData();
         formData.append('file', blob, 'face.jpg');
         
-        const response = await fetch('http://localhost:8001/check-face-duplicate', {
+        const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+        const response = await fetch(`${FACE_SERVICE_URL}/check-face-duplicate`, {
           method: 'POST',
           body: formData
         });
@@ -436,7 +438,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       formData.append('floor_id', '1');
       formData.append('room_location', 'Office');
 
-      const faceResponse = await fetch('http://localhost:8001/register-face', {
+      const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+      const faceResponse = await fetch(`${FACE_SERVICE_URL}/register-face`, {
         method: 'POST',
         body: formData
       });

@@ -1,0 +1,82 @@
+name: Backend CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - clean
+    paths:
+      - 'backend-laravel/**'
+  push:
+    branches:
+      - main
+      - clean
+    paths:
+      - 'backend-laravel/**'
+
+jobs:
+  # Run tests on every PR
+  test-backend:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite
+          coverage: none
+
+      - name: Copy .env
+        run: |
+          cd backend-laravel
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install Composer dependencies
+        run: |
+          cd backend-laravel
+          composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run Feature Tests
+        run: |
+          cd backend-laravel
+          php artisan test
+
+      - name: ✅ Tests Passed
+        if: success()
+        run: echo "All backend feature tests passed!"
+
+  # Deploy to EC2 on push to main/clean
+  deploy-backend:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/clean')
+    
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 to known hosts
+        run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy Backend
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.DEPLOY_PATH || '/var/www/html/aegis-ignis' }}
+            git pull origin ${{ github.ref_name }}
+            cd backend-laravel
+            composer install --no-dev --optimize-autoloader --no-interaction
+            php artisan migrate --force
+            php artisan optimize
+            chmod -R 775 storage bootstrap/cache
+            echo " Backend updated successfully!"
+          ENDSSH

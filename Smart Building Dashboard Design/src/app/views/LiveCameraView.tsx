@@ -137,7 +137,7 @@ export default function LiveCameraView() {
       const formData = new FormData();
       formData.append('file', imageBlob, 'frame.jpg');
 
-      const response = await fetch('http://localhost:8002/detect-fire', {
+      const response = await fetch(`${API_CONFIG.FIRE_SERVICE}/detect-fire`, {
         method: 'POST',
         body: formData,
       });
@@ -165,7 +165,7 @@ export default function LiveCameraView() {
       const formData = new FormData();
       formData.append('file', imageBlob, 'frame.jpg');
 
-      const response = await fetch('http://localhost:8001/detect-faces', {
+      const response = await fetch(`${API_CONFIG.FACE_SERVICE}/detect-faces`, {
         method: 'POST',
         body: formData,
       });
