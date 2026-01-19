@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, Check, X, Loader2, LogOut, Users, MapPin, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut } from 'lucide-react';
+import { API_BASE_URL } from '../services/api';
 
 interface FaceRegistrationProps {
   onLogout: () => void;
@@ -63,7 +64,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
 
   const fetchNextEmployeeId = async () => {
     try {
-      const response = await fetch('http://35.180.117.85/api/v1/employees/next-id');
+      const response = await fetch(`${API_BASE_URL}/employees/next-id`);
       if (response.ok) {
         const data = await response.json();
         setEmployeeId(data.next_id);
@@ -151,7 +152,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           const formData = new FormData();
           formData.append('file', blob);
 
-          const response = await fetch('http://localhost:8001/detect-faces', {
+          const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+          const response = await fetch(`${FACE_SERVICE_URL}/detect-faces`, {
             method: 'POST',
             body: formData
           });
@@ -295,7 +297,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         const formData = new FormData();
         formData.append('file', blob, 'face.jpg');
         
-        const response = await fetch('http://localhost:8001/check-face-duplicate', {
+        const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+        const response = await fetch(`${FACE_SERVICE_URL}/check-face-duplicate`, {
           method: 'POST',
           body: formData
         });
@@ -399,7 +402,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
         role: 'employee'
       };
 
-      const createResponse = await fetch('http://35.180.117.85/api/v1/employees/create-with-face', {
+      const createResponse = await fetch(`${API_BASE_URL}/employees/create-with-face`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -435,7 +438,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       formData.append('floor_id', '1');
       formData.append('room_location', 'Office');
 
-      const faceResponse = await fetch('http://localhost:8001/register-face', {
+      const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
+      const faceResponse = await fetch(`${FACE_SERVICE_URL}/register-face`, {
         method: 'POST',
         body: formData
       });

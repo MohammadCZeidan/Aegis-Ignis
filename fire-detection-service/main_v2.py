@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration - ULTRA SENSITIVE FOR IMMEDIATE FIRE DETECTION
-LARAVEL_API_URL = os.getenv('LARAVEL_API_URL', 'http://35.180.117.85/api/v1')
+LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
 CONFIDENCE_THRESHOLD_WARNING = 0.08  # Ultra-sensitive for lighters and small flames
 CONFIDENCE_THRESHOLD_ALERT = 0.20     # Lower threshold for faster critical alerts
 

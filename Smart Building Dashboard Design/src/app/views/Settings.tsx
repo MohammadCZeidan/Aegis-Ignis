@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import { API_CONFIG, buildBackendUrl } from '../../config/api';
 import {
   Select,
   SelectContent,
@@ -49,7 +50,7 @@ export function Settings() {
   const loadBuildingConfig = async () => {
     try {
       const token = localStorage.getItem('aegis_auth_token');
-      const response = await fetch('http://localhost:8000/api/v1/building/config', {
+      const response = await fetch(`${API_CONFIG.BACKEND_API}/building/config`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (response.ok) {
@@ -130,7 +131,7 @@ export function Settings() {
         try {
           console.log('📝 Updating camera streaming server...');
           console.log('Sending assignments:', cameraAssignments);
-          const streamResponse = await fetch('http://localhost:5000/api/cameras/update-config', {
+          const streamResponse = await fetch(`${API_CONFIG.CAMERA_SERVICE}/api/cameras/update-config`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ assignments: cameraAssignments })
@@ -153,7 +154,7 @@ export function Settings() {
         try {
           console.log('📝 Updating floor monitoring service...');
           console.log('Sending assignments:', cameraAssignments);
-          const floorResponse = await fetch('http://localhost:8003/api/cameras/update-floor-assignments', {
+          const floorResponse = await fetch(`${API_CONFIG.FLOOR_SERVICE}/api/cameras/update-floor-assignments`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ assignments: cameraAssignments })
@@ -319,7 +320,7 @@ export function Settings() {
               onClick={async () => {
                 try {
                   const token = localStorage.getItem('aegis_auth_token');
-                  const response = await fetch('http://35.180.117.85/api/v1/building/config', {
+                  const response = await fetch(buildBackendUrl('/building/config'), {
                     method: 'PUT',
                     headers: { 
                       'Content-Type': 'application/json',

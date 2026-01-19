@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { dataService, Employee } from '../services/dataService';
+import { API_CONFIG, getStorageUrl } from '../../config/api';
 
 export function Employees() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -108,7 +109,7 @@ export function Employees() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {floorEmployees.map((emp) => {
                   const facePhotoUrl = emp.face_photo_path 
-                    ? `http://35.180.117.85/storage/${emp.face_photo_path}`
+                    ? getStorageUrl(emp.face_photo_path)
                     : emp.photo_url;
                   
                   return (
@@ -172,7 +173,7 @@ export function Employees() {
               <div className="flex items-start gap-6">
                 {selectedEmployee.face_photo_path ? (
                   <img
-                    src={`http://35.180.117.85/storage/${selectedEmployee.face_photo_path}`}
+                    src={getStorageUrl(selectedEmployee.face_photo_path)}
                     alt={selectedEmployee.name}
                     className="w-32 h-32 object-cover rounded-lg border-2 border-slate-200 shadow-sm"
                     onError={(e) => {

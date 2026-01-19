@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { buildBackendUrl } from '../../config/api';
 
 interface AppContextType {
   sidebarCollapsed: boolean;
@@ -19,7 +20,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const loadBuildingName = async () => {
       try {
         const token = localStorage.getItem('aegis_auth_token');
-        const response = await fetch('http://35.180.117.85/api/v1/building/config', {
+        const response = await fetch(buildBackendUrl('/building/config'), {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         const data = await response.json();

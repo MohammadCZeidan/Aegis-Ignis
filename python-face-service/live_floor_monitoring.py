@@ -37,7 +37,7 @@ app.add_middleware(
 )
 
 # Configuration
-LARAVEL_API_URL = "http://35.180.117.85"
+LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000').rstrip('/api/v1')
 FACE_MATCH_THRESHOLD = 0.35  # 35% threshold for live recognition (lower for easier detection)
 CACHE_REFRESH_SECONDS = 30  # Refresh employee cache every 30 seconds
 DETECTION_INTERVAL = 3  # Process frames every 3 seconds per camera

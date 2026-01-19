@@ -39,7 +39,7 @@ app.add_middleware(
 )
 
 # Configuration
-LARAVEL_API_URL = "http://35.180.117.85"
+LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000').rstrip('/api/v1')
 FACE_MATCH_THRESHOLD = 0.40  # 40% threshold - catches more duplicates
 CACHE_REFRESH_SECONDS = 10  # Refresh every 10 seconds max
 

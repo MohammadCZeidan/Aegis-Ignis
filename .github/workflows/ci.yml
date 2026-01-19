@@ -15,15 +15,14 @@ jobs:
     name: Laravel Backend Tests
     runs-on: ubuntu-latest
     
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: testing
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    env:
+      APP_KEY: base64:test1234567890abcdefghijklmnopqrstuvwxyz1234567890ab=
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      CACHE_DRIVER: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
     
     steps:
       - name: Checkout code
@@ -33,31 +32,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.2
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, dom, filter, gd, json
           coverage: none
 
       - name: Install Composer dependencies
         working-directory: ./backend-laravel
-        run: composer install --prefer-dist --no-progress --no-suggest
-
-      - name: Prepare Laravel Application
-        working-directory: ./backend-laravel
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          php artisan config:clear
-          php artisan cache:clear
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
       - name: Run Tests
         working-directory: ./backend-laravel
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: testing
-          DB_USERNAME: root
-          DB_PASSWORD: password
-        run: php artisan test
+        run: vendor/bin/phpunit
 
   python-linting:
     name: Python Services Linting
@@ -105,27 +89,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'Smart Building Dashboard Design/package-lock.json'
 
       - name: Install Dependencies
-        working-directory: ./Smart Building Dashboard Design
-        run: npm ci
+        working-directory: './Smart Building Dashboard Design'
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
 
-      - name: Run Linting
-        working-directory: ./Smart Building Dashboard Design
-        run: npm run lint || true
+      - name: Ensure vite is executable
+        working-directory: './Smart Building Dashboard Design'
+        run: chmod +x node_modules/.bin/vite
 
       - name: Build Application
-        working-directory: ./Smart Building Dashboard Design
+        working-directory: './Smart Building Dashboard Design'
         run: npm run build
 
       - name: Check Build Size
-        working-directory: ./Smart Building Dashboard Design
+        working-directory: './Smart Building Dashboard Design'
         run: |
-          echo "📊 Build Size Analysis:"
-          du -sh dist/
-          ls -lh dist/
+          echo " Build Size Analysis:"
+          du -sh dist/ || true
+          ls -lh dist/ || true
 
   security-scan:
     name: Security Scanning

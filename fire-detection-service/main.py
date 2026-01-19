@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class FireDetectionConfig:
-    API_BASE_URL = os.getenv('LARAVEL_API_URL', 'http://35.180.117.85/api/v1')
+    API_BASE_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
     CAMERA_ID = int(os.getenv('CAMERA_ID', '1'))
     FLOOR_ID = None
     ROOM_LOCATION = None
