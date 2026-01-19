@@ -36,14 +36,19 @@ jobs:
           extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, gd, json
           coverage: none
 
+      - name: Copy Environment File
+        working-directory: ./backend-laravel
+        run: cp .env.example .env || echo "No .env.example found"
+
       - name: Install Composer dependencies
         working-directory: ./backend-laravel
-        run: composer install --prefer-dist --no-progress --no-suggest
+        run: |
+          composer clear-cache
+          composer install --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
       - name: Prepare Laravel Application
         working-directory: ./backend-laravel
         run: |
-          cp .env.example .env
           php artisan key:generate
           php artisan config:clear
           php artisan cache:clear
