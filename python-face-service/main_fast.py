@@ -122,15 +122,24 @@ def refresh_employee_cache():
                 embeddings_list = []
                 employee_info_list = []
                 
+                EXPECTED_EMBEDDING_DIM = 512  # InsightFace embedding dimension
+                
                 for employee in cached_employees:
                     if not employee.get('face_embedding'):
                         continue
                     
                     try:
                         stored_embedding = json.loads(employee['face_embedding'])
+                        
+                        # CRITICAL: Validate embedding dimension to prevent shape mismatch
+                        if len(stored_embedding) != EXPECTED_EMBEDDING_DIM:
+                            logger.warning(f"⚠️ Skipping employee {employee.get('id')} - Invalid embedding dimension: {len(stored_embedding)} (expected {EXPECTED_EMBEDDING_DIM})")
+                            continue
+                        
                         embeddings_list.append(stored_embedding)
                         employee_info_list.append(employee)
-                    except:
+                    except Exception as e:
+                        logger.warning(f"⚠️ Skipping employee {employee.get('id')} - Invalid embedding: {e}")
                         continue
                 
                 # Store as NumPy matrix for VECTORIZED operations
@@ -418,6 +427,14 @@ async def register_face(
         confidence = float(face.det_score)
         bbox = face.bbox.astype(int).tolist()
         
+        # VALIDATE: Ensure embedding has correct dimension
+        EXPECTED_EMBEDDING_DIM = 512
+        if len(face_embedding) != EXPECTED_EMBEDDING_DIM:
+            raise HTTPException(
+                500, 
+                f"Invalid embedding dimension: {len(face_embedding)} (expected {EXPECTED_EMBEDDING_DIM}). Please restart the face service."
+            )
+        
         # 🔍 CRITICAL DUPLICATE CHECK - Use existing cache (already fresh from UI check)
         cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
         if cache_age > 10:
@@ -502,6 +519,84 @@ async def register_face(
         raise
     except Exception as e:
         logger.error(f"❌ Register face error: {e}")
+        raise HTTPException(500, str(e))
+
+
+@app.post("/identify-face")
+async def identify_face(file: UploadFile = File(...)):
+    """ULTRA-FAST face identification using precomputed embeddings matrix"""
+    if not INSIGHTFACE_AVAILABLE:
+        raise HTTPException(503, "Face recognition unavailable")
+    
+    try:
+        contents = await file.read()
+        image = image_to_numpy(contents)
+        
+        faces = face_detector.get(image)
+        
+        if not faces:
+            return {
+                "success": True,
+                "identified": False,
+                "message": "No face detected in image",
+                "face_count": 0
+            }
+        
+        # Use the best (most confident) face
+        face = faces[0]
+        face_embedding = face.embedding.tolist()
+        
+        # ULTRA-FAST comparison using cached matrix
+        if cached_embeddings_matrix is not None and len(cached_employee_ids) > 0:
+            query_vec = np.array(face_embedding).reshape(1, -1)
+            
+            # Vectorized cosine similarity - INSTANT for 1000s of employees
+            similarities = np.dot(cached_embeddings_matrix, query_vec.T).flatten()
+            norms = np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(query_vec)
+            cosine_scores = similarities / norms
+            
+            # Find best match
+            best_idx = np.argmax(cosine_scores)
+            best_similarity = float(cosine_scores[best_idx])
+            
+            # Threshold for identification (0.4 is typical for face recognition)
+            SIMILARITY_THRESHOLD = 0.4
+            
+            if best_similarity >= SIMILARITY_THRESHOLD:
+                employee_id = cached_employee_ids[best_idx]
+                employee_name = cached_employee_names[best_idx]
+                
+                logger.info(f"✅ Face identified: {employee_name} (ID: {employee_id}) - Similarity: {best_similarity:.3f}")
+                
+                return {
+                    "success": True,
+                    "identified": True,
+                    "employee_id": employee_id,
+                    "employee_name": employee_name,
+                    "similarity": best_similarity,
+                    "confidence": float(face.det_score),
+                    "message": f"Identified as {employee_name}"
+                }
+            else:
+                logger.info(f"❌ No match found - Best similarity: {best_similarity:.3f} (threshold: {SIMILARITY_THRESHOLD})")
+                return {
+                    "success": True,
+                    "identified": False,
+                    "best_similarity": best_similarity,
+                    "threshold": SIMILARITY_THRESHOLD,
+                    "message": "Face not recognized"
+                }
+        else:
+            return {
+                "success": True,
+                "identified": False,
+                "message": "No registered faces in database to compare against"
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Identify face error: {e}")
         raise HTTPException(500, str(e))
 
 
