@@ -46,14 +46,24 @@ export default function FloorMonitoring() {
   useEffect(() => {
     const loadFloors = async () => {
       try {
-        const response = await fetch(buildBackendUrl('/floors'));
+        const url = buildBackendUrl('/floors');
+        console.log('🔍 Floor Monitoring - Fetching floors from:', url);
+        const response = await fetch(url);
+        console.log('✅ Floor Monitoring - Response status:', response.status);
         const data = await response.json();
+        console.log('📊 Floor Monitoring - Raw data received:', data);
+        console.log('📊 Floor Monitoring - Is Array?', Array.isArray(data));
+        console.log('📊 Floor Monitoring - Length:', data?.length);
+        
         setFloors(data);
+        console.log('✅ Floor Monitoring - Floors set to state:', data);
+        
         if (data.length > 0 && !selectedFloor) {
           setSelectedFloor(data[0].id);
+          console.log('✅ Floor Monitoring - Selected first floor:', data[0].id, data[0].name);
         }
       } catch (error) {
-        console.error('Failed to load floors:', error);
+        console.error('❌ Floor Monitoring - Failed to load floors:', error);
       } finally {
         setLoading(false);
       }

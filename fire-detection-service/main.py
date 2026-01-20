@@ -257,18 +257,10 @@ class ScreenshotHandler:
         return buffer.tobytes() if success else None
     
     def _upload_or_encode(self, filename: str, buffer: bytes) -> Optional[str]:
-        """Upload to EC2 storage or fallback to base64."""
-        try:
-            upload_path = self._upload_to_storage(filename, buffer)
-            if upload_path:
-                logger.info(f"Screenshot uploaded to EC2: {upload_path}")
-                return upload_path
-        except Exception as upload_error:
-            logger.error(f"Upload error: {upload_error}")
-        
-        # Fallback to base64
+        """Encode screenshot as base64 (upload disabled for now)."""
+        # Direct base64 encoding - EC2 upload endpoint not available
         image_base64 = base64.b64encode(buffer).decode('utf-8')
-        logger.info("Screenshot encoded as base64 fallback")
+        logger.info("Screenshot encoded as base64")
         return image_base64
     
     def _upload_to_storage(self, filename: str, buffer: bytes) -> Optional[str]:

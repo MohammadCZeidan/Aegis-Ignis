@@ -57,7 +57,10 @@ export function Alerts() {
         dataService.getFloors()
       ]);
       
-      console.log('Alerts API Response:', alertsData); // Debug log
+      console.log('🔥 Alerts - Alerts API Response:', alertsData); // Debug log
+      console.log('🏢 Alerts - Floors data received:', floorsData);
+      console.log('🏢 Alerts - Floors is Array?', Array.isArray(floorsData));
+      console.log('🏢 Alerts - Floors length:', floorsData?.length);
       
       // Handle different response formats
       let alertsList = [];
@@ -69,11 +72,12 @@ export function Alerts() {
         alertsList = Object.values(alertsData).filter(item => typeof item === 'object' && item.id);
       }
       
-      console.log('Processed alerts:', alertsList.length); // Debug log
+      console.log('🔥 Alerts - Processed alerts:', alertsList.length);
       setAlerts(alertsList);
       setFloors(floorsData);
+      console.log('✅ Alerts - Floors set to state:', floorsData);
     } catch (error) {
-      console.error('Failed to load alerts:', error);
+      console.error('❌ Alerts - Failed to load alerts:', error);
     } finally {
       setLoading(false);
     }
