@@ -4,16 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\AlertService;
+use App\Services\AlertCleanupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AlertController extends Controller
 {
     private AlertService $alertService;
+    private AlertCleanupService $cleanupService;
 
-    public function __construct(AlertService $alertService)
+    public function __construct(AlertService $alertService, AlertCleanupService $cleanupService)
     {
         $this->alertService = $alertService;
+        $this->cleanupService = $cleanupService;
     }
 
     public function index(Request $request): JsonResponse
@@ -78,5 +81,16 @@ class AlertController extends Controller
         }
         
         return $filters;
+    }
+
+    public function cleanupImages(Request $request): JsonResponse
+    {
+        $days = $request->input('days', 1);
+        $deleteAll = $request->boolean('all', false);
+        
+        $result = $this->cleanupService->cleanupImages($days, $deleteAll);
+        
+        $statusCode = $result['success'] ? 200 : 500;
+        return response()->json($result, $statusCode);
     }
 }

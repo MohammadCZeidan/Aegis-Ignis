@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function () {
     Route::patch('/cameras/{id}/floor', [App\Http\Controllers\Api\CameraController::class, 'updateFloor']);
     Route::patch('/cameras/{id}/update-alerts-floor', [App\Http\Controllers\Api\CameraController::class, 'updateAlertsFloor']);
     Route::get('/employees', [App\Http\Controllers\Api\EmployeeControllerSimple::class, 'indexSimple']);
+    Route::get('/employees/{id}/photo', [App\Http\Controllers\Api\EmployeeControllerSimple::class, 'getEmployeePhoto']);
     
     // Public endpoints (for services)
     Route::post('/fire-detections/report', [App\Http\Controllers\Api\FireDetectionController::class, 'reportDetection']);
@@ -49,6 +50,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/alerts', [App\Http\Controllers\Api\AlertController::class, 'index']);
     Route::get('/alerts/by-floor/{floorId}', [App\Http\Controllers\Api\AlertController::class, 'byFloor']);
     Route::post('/alerts/{id}/acknowledge', [App\Http\Controllers\Api\AlertController::class, 'acknowledge']);
+    Route::post('/alerts/cleanup-images', [App\Http\Controllers\Api\AlertController::class, 'cleanupImages']);
     
     // Presence tracking endpoints (public for camera services)
     Route::post('/presence/entry', [App\Http\Controllers\Api\PresenceController::class, 'logEntry']);

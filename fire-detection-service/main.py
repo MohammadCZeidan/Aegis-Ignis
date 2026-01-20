@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class FireDetectionConfig:
     API_BASE_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
     CAMERA_ID = int(os.getenv('CAMERA_ID', '1'))
+    CAMERA_NAME = None
     FLOOR_ID = None
     ROOM_LOCATION = None
     DETECTION_INTERVAL = float(os.getenv('DETECTION_INTERVAL', '1.0'))
@@ -39,14 +40,17 @@ class FireDetectionConfig:
     SERVICE_PORT = int(os.getenv('FIRE_SERVICE_PORT', '8002'))
     
     @classmethod
-    def update_camera_location(cls, floor_id: int, room_location: str):
+    def update_camera_location(cls, floor_id: int, room_location: str, camera_name: str = None):
         cls.FLOOR_ID = floor_id
         cls.ROOM_LOCATION = room_location
+        if camera_name:
+            cls.CAMERA_NAME = camera_name
 
 # Legacy CONFIG for backward compatibility
 CONFIG = {
     'api_base_url': FireDetectionConfig.API_BASE_URL,
     'camera_id': FireDetectionConfig.CAMERA_ID,
+    'camera_name': FireDetectionConfig.CAMERA_NAME,
     'floor_id': FireDetectionConfig.FLOOR_ID,
     'room_location': FireDetectionConfig.ROOM_LOCATION,
     'detection_interval': FireDetectionConfig.DETECTION_INTERVAL,
@@ -73,10 +77,12 @@ class CameraLocationService:
                 camera_data = response.json().get('data', {})
                 floor_id = camera_data.get('floor_id', 3)
                 room_location = camera_data.get('location', 'Unknown')
+                camera_name = camera_data.get('name', f'Camera {camera_id}')
                 
-                FireDetectionConfig.update_camera_location(floor_id, room_location)
+                FireDetectionConfig.update_camera_location(floor_id, room_location, camera_name)
                 CONFIG['floor_id'] = floor_id
                 CONFIG['room_location'] = room_location
+                CONFIG['camera_name'] = camera_name
                 
                 CameraLocationService._log_camera_info(camera_data, camera_id)
                 return True
@@ -98,9 +104,12 @@ class CameraLocationService:
     
     @staticmethod
     def _use_default_location():
-        FireDetectionConfig.update_camera_location(1, 'Main Hall')
+        camera_id = FireDetectionConfig.CAMERA_ID
+        default_name = f'Camera {camera_id}'
+        FireDetectionConfig.update_camera_location(1, 'Main Hall', default_name)
         CONFIG['floor_id'] = 1
         CONFIG['room_location'] = 'Main Hall'
+        CONFIG['camera_name'] = default_name
 
 # Backward compatibility function
 def fetch_camera_location() -> bool:
@@ -312,6 +321,7 @@ class DetectionReporter:
         severity = 'critical' if detection['confidence'] > 0.7 else 'warning'
         
         base_payload = {
+            'camera_name': CONFIG['camera_name'] or f"Camera {CONFIG['camera_id']}",
             'event_type': 'fire',
             'severity': severity,
             'camera_id': CONFIG['camera_id'],
@@ -334,7 +344,12 @@ class DetectionReporter:
         endpoint = f"{CONFIG['api_base_url']}/alerts/fire"
         
         try:
-            response = self.session.post(endpoint, json=payload, timeout=10)
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            }
+            response = self.session.post(endpoint, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
             return response.json()
             

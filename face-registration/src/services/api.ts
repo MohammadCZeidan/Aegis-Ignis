@@ -1,5 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+export { API_BASE_URL };
+
 interface Floor {
   id: number;
   floor_number: number;
