@@ -104,11 +104,35 @@ class CameraLocationService:
     
     @staticmethod
     def _use_default_location():
+        """Fetch first available floor as fallback."""
+        try:
+            response = requests.get(
+                f"{FireDetectionConfig.API_BASE_URL}/floors",
+                timeout=3
+            )
+            if response.status_code == 200:
+                floors = response.json().get('data', [])
+                if floors:
+                    first_floor = floors[0]
+                    floor_id = first_floor.get('id', 1)
+                    floor_name = first_floor.get('name', 'Main')
+                    camera_id = FireDetectionConfig.CAMERA_ID
+                    default_name = f'Camera {camera_id}'
+                    FireDetectionConfig.update_camera_location(floor_id, f'{floor_name} Hall', default_name)
+                    CONFIG['floor_id'] = floor_id
+                    CONFIG['room_location'] = f'{floor_name} Hall'
+                    CONFIG['camera_name'] = default_name
+                    logger.info(f"Using first available floor: {floor_name} (ID: {floor_id})")
+                    return
+        except Exception as e:
+            logger.error(f"Error fetching floors: {e}")
+        
+        # Ultimate fallback - let backend handle it
         camera_id = FireDetectionConfig.CAMERA_ID
         default_name = f'Camera {camera_id}'
-        FireDetectionConfig.update_camera_location(1, 'Main Hall', default_name)
-        CONFIG['floor_id'] = 1
-        CONFIG['room_location'] = 'Main Hall'
+        FireDetectionConfig.update_camera_location(None, 'Unknown', default_name)
+        CONFIG['floor_id'] = None
+        CONFIG['room_location'] = 'Unknown'
         CONFIG['camera_name'] = default_name
 
 # Backward compatibility function

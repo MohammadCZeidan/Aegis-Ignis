@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Alert;
 use App\Models\EmergencyAlert;
+use App\Models\Floor;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -153,10 +154,23 @@ class AlertService
 
     private function prepareFireAlertData(array $data): array
     {
+        // Validate floor_id exists, use first available floor if invalid
+        $floorId = $data['floor_id'] ?? null;
+        if (!$floorId || !Floor::find($floorId)) {
+            $firstFloor = Floor::orderBy('id')->first();
+            if ($firstFloor) {
+                $floorId = $firstFloor->id;
+                Log::warning("Invalid floor_id provided, using first available floor: {$floorId}");
+            } else {
+                Log::error("No floors exist in database");
+                throw new \Exception("No floors available in database");
+            }
+        }
+
         return [
             'event_type' => 'fire',
             'severity' => $data['severity'] ?? 'warning',
-            'floor_id' => $data['floor_id'],
+            'floor_id' => $floorId,
             'camera_id' => $data['camera_id'],
             'camera_name' => $data['camera_name'] ?? "Camera {$data['camera_id']}",
             'room' => $data['room'] ?? 'Unknown',
