@@ -341,7 +341,7 @@ def send_fire_alert_to_backend(camera_id: int, camera_name: str, floor_id: int,
         if response.status_code in [200, 201]:
             result = response.json()
             alert_id = result.get('id') or result.get('alert', {}).get('id')
-            logger.info(f"✅ Alert sent to EC2 backend - Alert ID: {alert_id}, Confidence: {confidence_percentage:.1f}%")
+            logger.info(f" Alert sent to EC2 backend - Alert ID: {alert_id}, Confidence: {confidence_percentage:.1f}%")
             return alert_id
         else:
             logger.error(f" Failed to send alert to backend: {response.status_code} - {response.text}")
@@ -420,7 +420,7 @@ async def detect_fire_ml(
                             people_count=people_count,
                             camera_id=camera_id
                         )
-                        logger.warning(f"🚨 CRITICAL: {people_count} people on floor during fire!")
+                        logger.warning(f" CRITICAL: {people_count} people on floor during fire!")
             
             # Send to Laravel backend (EC2)
             alert_id = send_fire_alert_to_backend(
@@ -442,7 +442,7 @@ async def detect_fire_ml(
                 "alert_id": alert_id,
                 "n8n_alert_sent": n8n_success,
                 "people_on_floor": people_count,
-                "message": f"🔥 Fire detected! ({method} detection - {confidence*100:.1f}% confidence)",
+                "message": f" Fire detected! ({method} detection - {confidence*100:.1f}% confidence)",
                 "bbox": detection_result.get('bbox'),
                 "screenshot_saved": True
             })
@@ -456,7 +456,7 @@ async def detect_fire_ml(
             })
             
     except Exception as e:
-        logger.error(f"❌ Error in fire detection: {e}")
+        logger.error(f" Error in fire detection: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -550,14 +550,14 @@ async def stop_camera(camera_id: int):
 
 if __name__ == "__main__":
     print("\n" + "="*80)
-    print("🚀 STARTING ML FIRE DETECTION SERVICE")
+    print(" STARTING ML FIRE DETECTION SERVICE")
     print("="*80)
-    print(f"📍 Port: 8004 (ML Service)")
-    print(f"🔥 Detection Method: {ml_detector.detection_method}")
-    print(f"🎯 Confidence Threshold: {FIRE_CONFIDENCE_THRESHOLD*100}%")
-    print(f"🏢 Backend API: {LARAVEL_API_URL}")
-    print(f"📱 N8N Webhook: {'✅ Configured' if N8N_WEBHOOK_URL else '❌ Not configured'}")
-    print(f"💾 Model Path: {ML_MODEL_PATH}")
+    print(f" Port: 8004 (ML Service)")
+    print(f" Detection Method: {ml_detector.detection_method}")
+    print(f" Confidence Threshold: {FIRE_CONFIDENCE_THRESHOLD*100}%")
+    print(f" Backend API: {LARAVEL_API_URL}")
+    print(f" N8N Webhook: {' Configured' if N8N_WEBHOOK_URL else ' Not configured'}")
+    print(f" Model Path: {ML_MODEL_PATH}")
     print("="*80 + "\n")
     
     # Auto-start camera monitoring
@@ -566,7 +566,7 @@ if __name__ == "__main__":
     if cameras:
         for cam in cameras:
             cam_id = cam['id']
-            print(f"   📹 Starting Camera {cam_id} ({cam['name']})...")
+            print(f"   Starting Camera {cam_id} ({cam['name']})...")
             
             # Start background monitoring thread
             monitor_thread = Thread(target=monitor_camera_background, args=(cam_id,), daemon=True)
@@ -574,10 +574,10 @@ if __name__ == "__main__":
             
             time.sleep(1)  # Brief delay between cameras
         
-        print(f"✅ Started monitoring {len(cameras)} camera(s)")
-        print("🔥 Fire detection active - alerts will be sent automatically!")
+        print(f" Started monitoring {len(cameras)} camera(s)")
+        print(" Fire detection active - alerts will be sent automatically!")
     else:
-        print("⚠️  No cameras configured in camera_config.json")
+        print("  No cameras configured in camera_config.json")
     
     print("="*80 + "\n")
     

@@ -1,6 +1,7 @@
 """
-Alert Manager for fire and presence notifications via N8N
+Alert Manager for fire and presence notifications via N8N and Twilio WhatsApp
 Sends fire alerts to N8N webhook for WhatsApp and voice notifications
+Direct Twilio WhatsApp integration for instant fire alerts
 """
 import requests
 import logging
@@ -12,6 +13,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+# Import Twilio (optional - only if credentials are set)
+try:
+    from twilio.rest import Client as TwilioClient
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    logger.warning("Twilio not installed. Install with: pip install twilio")
 
 
 class AlertManager:
@@ -26,6 +35,21 @@ class AlertManager:
         """
         self.n8n_webhook_url = n8n_webhook_url or os.getenv('N8N_WEBHOOK_URL')
         self.backend_url = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
+        
+        # Twilio configuration (loaded from .env file - DO NOT HARDCODE)
+        self.twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        self.twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
+        self.twilio_from = os.getenv('TWILIO_WHATSAPP_FROM')
+        self.twilio_to = os.getenv('TWILIO_WHATSAPP_TO')
+        
+        # Initialize Twilio client
+        self.twilio_client = None
+        if TWILIO_AVAILABLE and self.twilio_sid and self.twilio_token:
+            try:
+                self.twilio_client = TwilioClient(self.twilio_sid, self.twilio_token)
+                logger.info("✅ Twilio WhatsApp client initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize Twilio: {e}")
         
         if not self.n8n_webhook_url:
             logger.warning("N8N_WEBHOOK_URL not configured. N8N alerts will be disabled.")
@@ -62,7 +86,7 @@ class AlertManager:
         people_count = len(people_detected)
         
         # Create alert message
-        fire_emoji = "🔥" if fire_type == "fire" else "💨"
+        fire_emoji = "" if fire_type == "fire" else "💨"
         message = (
             f"{fire_emoji} FIRE ALERT - Floor {floor_id}\n"
             f"Location: {room}\n"
@@ -75,7 +99,7 @@ class AlertManager:
         )
         
         if people_count > 0:
-            message += f"\n\n⚠️ EVACUATION REQUIRED - {people_count} people present!"
+            message += f"\n\n EVACUATION REQUIRED - {people_count} people present!"
         
         # Prepare alert payload for N8N
         alert_data = {
@@ -100,10 +124,23 @@ class AlertManager:
         # Send to N8N webhook
         n8n_success = self._send_to_n8n(alert_data)
         
+        # Send via Twilio WhatsApp (instant notification)
+        logger.info(f"📱 Attempting to send WhatsApp alert for Floor {floor_id}")
+        whatsapp_success = self._send_whatsapp_alert(
+            floor_id=floor_id,
+            room=room,
+            fire_type=fire_type,
+            confidence=confidence,
+            people_count=people_count,
+            severity=severity
+        )
+        if whatsapp_success:
+            logger.info(f" WhatsApp alert sent successfully for Floor {floor_id}")
+        
         # Also log to backend (existing system)
         backend_success = self._log_to_backend(alert_data)
         
-        return n8n_success or backend_success
+        return n8n_success or whatsapp_success or backend_success
     
     def send_presence_update(
         self, 
@@ -183,6 +220,70 @@ class AlertManager:
         }
         
         return self._send_to_n8n(alert_data)
+    
+    def _send_whatsapp_alert(
+        self,
+        floor_id: int,
+        room: str,
+        fire_type: str,
+        confidence: float,
+        people_count: int,
+        severity: str
+    ) -> bool:
+        """
+        Send fire alert via Twilio WhatsApp
+        
+        Args:
+            floor_id: Floor number
+            room: Room location
+            fire_type: Type of fire (fire/smoke)
+            confidence: Detection confidence (0-1)
+            people_count: Number of people on floor
+            severity: Alert severity
+            
+        Returns:
+            True if sent successfully
+        """
+        if not self.twilio_client:
+            logger.debug("Twilio not configured, skipping WhatsApp alert")
+            return False
+        
+        try:
+            # Format current time
+            current_time = datetime.now().strftime('%I:%M %p')
+            current_date = datetime.now().strftime('%m/%d/%Y')
+            
+            # Create alert message
+            fire_emoji = "🔥" if fire_type == "fire" else "💨"
+            message_body = (
+                f"{fire_emoji} *FIRE EMERGENCY ALERT*\n\n"
+                f"📍 *Location:* Floor {floor_id} - {room}\n"
+                f"🔥 *Type:* {fire_type.upper()}\n"
+                f"⚠️ *Severity:* {severity.upper()}\n"
+                f"📊 *Confidence:* {confidence*100:.0f}%\n"
+                f"👥 *People Present:* {people_count}\n"
+                f"📅 *Date:* {current_date}\n"
+                f"⏰ *Time:* {current_time}\n\n"
+            )
+            
+            if people_count > 0:
+                message_body += f"🚨 *URGENT: {people_count} people need evacuation!*\n\n"
+            
+            message_body += "⚡ *Immediate action required!*"
+            
+            # Send WhatsApp message
+            message = self.twilio_client.messages.create(
+                from_=self.twilio_from,
+                to=self.twilio_to,
+                body=message_body
+            )
+            
+            logger.info(f"✅ WhatsApp alert sent - SID: {message.sid}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to send WhatsApp alert: {e}")
+            return False
     
     def _send_to_n8n(self, alert_data: Dict) -> bool:
         """
