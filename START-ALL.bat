@@ -28,7 +28,7 @@ timeout /t 3 /nobreak >nul
 echo.
 
 echo [2/6] Starting Live Camera Detection Server (Port 5000)...
-start "Live Camera Server" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Camera Detection Server'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Live Camera Detection Server Starting...' -ForegroundColor Cyan; Write-Host '   OPTIMIZED: Fast Response + Face + Fire' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; python live_camera_detection_server.py"
+start "Live Camera Server" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Camera Detection Server - ML ENABLED'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Live Camera Detection Server Starting...' -ForegroundColor Cyan; Write-Host '   ML Fire Detection + N8N Alerts + Face Recognition' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe live_camera_detection_server.py"
 timeout /t 5 /nobreak >nul
 echo [OK] Live Camera Detection Server launched
 echo.
@@ -62,6 +62,12 @@ timeout /t 3 /nobreak >nul
 echo [OK] Fire Detection launched (Alerts + Screenshots enabled)
 echo.
 
+echo [4.6/6] Starting ML Fire Detection Service (Port 8004) - ML MODE...
+start "ML Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkMagenta'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='ML Fire Detection - AI POWERED'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML FIRE DETECTION - YOLOv8 + N8N' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   AI Features:' -ForegroundColor Cyan; Write-Host '   - YOLOv8 ML Model (with color fallback)' -ForegroundColor Green; Write-Host '   - N8N WhatsApp/Voice Alerts' -ForegroundColor Green; Write-Host '   - EC2 Backend Integration' -ForegroundColor Green; Write-Host '   - Smart Confidence Threshold' -ForegroundColor Green; Write-Host '   - People Count Detection' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML-powered fire detection ready! 🤖🔥' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe fire-detection-service\main_ml.py"
+timeout /t 3 /nobreak >nul
+echo [OK] ML Fire Detection launched (AI + N8N Alerts enabled)
+echo.
+
 echo [5/6] Laravel Backend running on EC2: http://35.180.117.85
 echo [OK] Backend connected (AWS EC2)
 echo.
@@ -88,11 +94,12 @@ echo ===============================================================
 echo                   ALL SERVICES LAUNCHED!
 echo ===============================================================
 echo.
-echo Check your Windows taskbar for 7 PowerShell windows:
+echo Check your Windows taskbar for 8 PowerShell windows:
 echo   - Camera Streaming Server (Cyan)
 echo   - Face Registration Service (Green)
-echo   - Live Floor Monitoring (Cyan) ^<-- NEW! Real-time detection
-echo   - Fire Detection Service (RED) ^<-- SUPER EASY: 30%% confidence!
+echo   - Live Floor Monitoring (Cyan) ^<-- Real-time detection
+echo   - Fire Detection Service (RED) ^<-- Legacy Port 8002
+echo   - ML Fire Detection Service (MAGENTA) ^<-- AI Port 8004 + N8N!
 echo   - Camera Detection Service (Cyan)
 echo   - Web Dashboard (Blue)
 echo   - Employee Registration (Yellow)
@@ -118,6 +125,7 @@ echo   Employee Portal:    http://localhost:5174
 echo   Camera Streaming:   http://localhost:5000/stream/1
 echo   Face Registration:  http://localhost:8001/docs
 echo   Fire Detection:     http://localhost:8002/docs
+echo   ML Fire Detection:  http://localhost:8004/docs (AI + N8N!)
 echo   Floor Monitoring:   http://localhost:8003/docs (NEW!)
 echo   Laravel Backend:    http://35.180.117.85 (AWS EC2)
 echo.

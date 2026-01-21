@@ -100,9 +100,18 @@ class MLFireDetector:
                 'annotated_frame': np.ndarray (if return_annotated=True)
             }
         """
+        # Try ML detection first if available
         if self.model is not None:
             result = self._detect_ml(frame)
             result['method'] = 'ml'
+            
+            # If ML didn't detect anything, try color fallback
+            if not result['detected'] and self.use_color_fallback:
+                color_result = self._detect_color_based(frame)
+                if color_result['detected']:
+                    color_result['method'] = 'color'
+                    result = color_result
+                    
         elif self.use_color_fallback:
             result = self._detect_color_based(frame)
             result['method'] = 'color'

@@ -125,24 +125,34 @@ def send_fire_alert(camera_id, camera_name, floor_id, room, frame, confidence, f
         # Save screenshot
         screenshot_path = save_screenshot(frame, camera_id, detection_type="fire")
         
+        # Convert frame to base64 for backend
+        _, buffer = cv2.imencode('.jpg', frame)
+        screenshot_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        # Ensure base64 has proper data URI prefix
+        if not screenshot_base64.startswith('data:image'):
+            screenshot_base64 = f"data:image/jpeg;base64,{screenshot_base64}"
+        
+        # Convert confidence to 0-100 scale
+        confidence_percentage = confidence * 100
+        
         # Send alert to Laravel
         alert_data = {
-            "event_type": "fire",
-            "severity": "critical" if confidence > 0.7 else "warning",
             "camera_id": camera_id,
             "camera_name": camera_name,
             "floor_id": floor_id,
             "room": room,
-            "confidence": confidence,
-            "fire_type": fire_type,
-            "screenshot_path": screenshot_path,
-            "detected_at": datetime.now().isoformat()
+            "confidence": confidence_percentage,
+            "screenshot": screenshot_base64,  # Send base64 image
+            "detected_at": datetime.now().isoformat(),
+            "type": fire_type,
+            "severity": "critical" if confidence > 0.8 else "high" if confidence > 0.6 else "medium"
         }
         
         response = requests.post(
-            f"{LARAVEL_API_URL}/alerts/fire",
+            f"{LARAVEL_API_URL}/alerts",
             json=alert_data,
-            timeout=5
+            timeout=10
         )
         
         if response.status_code in [200, 201]:
@@ -417,13 +427,7 @@ class CameraStream:
             print(f"❌ Error in fire detection: {e}")
             import traceback
             traceback.print_exc()
-                                print(f"✅ Alert sent!")
-                        else:
-                            print(f"⏳ Cooldown ({FIRE_ALERT_COOLDOWN - (current_time - last_alert):.0f}s)")
-                    else:
-                        print(f"❌ Fire pixels too scattered - cluster: {contour_ratio:.3f} ({contour_ratio*100:.1f}%), need 2%+")
-        except Exception as e:
-            print(f"❌ Fire detection error: {e}")
+
             
     def get_frame(self):
         """Get current frame for streaming"""

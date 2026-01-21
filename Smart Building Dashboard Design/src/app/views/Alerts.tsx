@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
 import { AlertTriangle, Flame, CheckCircle, Building2, Camera, Clock } from 'lucide-react';
-import { dataService } from '../services/dataService';
 import { toast } from 'react-hot-toast';
 import { API_CONFIG } from '../../config/api';
+import { useFloors, useAlerts, useAcknowledgeAlert } from '../hooks/useData';
 
 const LARAVEL_API_URL = API_CONFIG.BACKEND_API;
 const LARAVEL_BASE_URL = API_CONFIG.BACKEND_API.replace('/api/v1', '');
@@ -35,65 +35,19 @@ interface Floor {
 }
 
 export function Alerts() {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [floors, setFloors] = useState<Floor[]>([]);
   const [selectedFloor, setSelectedFloor] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'active' | 'all'>('active');
-  const [loading, setLoading] = useState(true);
+  
+  const { data: floors = [], isLoading: floorsLoading } = useFloors();
+  const { data: alerts = [], isLoading: alertsLoading, error: alertsError } = useAlerts();
+  const acknowledgeMutation = useAcknowledgeAlert();
 
-  useEffect(() => {
-    loadData();
-    
-    // Refresh alerts every 10 seconds
-    const interval = setInterval(loadData, 10000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [alertsData, floorsData] = await Promise.all([
-        fetch(`${LARAVEL_API_URL}/alerts`).then(r => r.json()),
-        dataService.getFloors()
-      ]);
-      
-      console.log('🔥 Alerts - Alerts API Response:', alertsData); // Debug log
-      console.log('🏢 Alerts - Floors data received:', floorsData);
-      console.log('🏢 Alerts - Floors is Array?', Array.isArray(floorsData));
-      console.log('🏢 Alerts - Floors length:', floorsData?.length);
-      
-      // Handle different response formats
-      let alertsList = [];
-      if (Array.isArray(alertsData)) {
-        alertsList = alertsData;
-      } else if (alertsData.alerts && Array.isArray(alertsData.alerts)) {
-        alertsList = alertsData.alerts;
-      } else if (alertsData.success !== false) {
-        alertsList = Object.values(alertsData).filter(item => typeof item === 'object' && item.id);
-      }
-      
-      console.log('🔥 Alerts - Processed alerts:', alertsList.length);
-      setAlerts(alertsList);
-      setFloors(floorsData);
-      console.log('✅ Alerts - Floors set to state:', floorsData);
-    } catch (error) {
-      console.error('❌ Alerts - Failed to load alerts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = floorsLoading || alertsLoading;
 
   const acknowledgeAlert = async (alertId: number) => {
     try {
-      const response = await fetch(`${LARAVEL_API_URL}/alerts/${alertId}/acknowledge`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (!response.ok) throw new Error('Failed to acknowledge');
-      
+      await acknowledgeMutation.mutateAsync(alertId);
       toast.success('Alert acknowledged and resolved');
-      loadData();
     } catch (error) {
       console.error('Failed to acknowledge alert:', error);
       toast.error('Failed to acknowledge alert');
