@@ -1,8 +1,8 @@
 """
-Advanced Fire Detection Service
-- Detects black smoke (warning)
-- Detects small flames (warning)
-- Detects large flames (critical alert)
+Advanced Fire Detection Service with ML Integration
+- ML-based fire and smoke detection using YOLOv8
+- Automatic fallback to color-based detection
+- N8N webhook integration for WhatsApp/Voice alerts
 - AI-powered emergency communication
 """
 import cv2
@@ -11,6 +11,7 @@ import requests
 import time
 import logging
 import os
+import sys
 from typing import Dict, List, Optional
 from datetime import datetime
 from dotenv import load_dotenv
@@ -20,6 +21,12 @@ from pydantic import BaseModel
 import uvicorn
 import base64
 
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from services.ml_fire_detector import MLFireDetector
+from services.alert_manager import AlertManager
+
 load_dotenv()
 
 logging.basicConfig(
@@ -28,12 +35,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuration - ULTRA SENSITIVE FOR IMMEDIATE FIRE DETECTION
+# Configuration
 LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
+N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL')
+ML_MODEL_PATH = os.getenv('ML_MODEL_PATH', '../ml_models/weights/fire_detection.pt')
+CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.5'))
+USE_ML_DETECTION = os.getenv('USE_ML_DETECTION', 'true').lower() == 'true'
+USE_COLOR_FALLBACK = os.getenv('USE_COLOR_FALLBACK', 'true').lower() == 'true'
+
+# Legacy thresholds for color-based detection
 CONFIDENCE_THRESHOLD_WARNING = 0.08  # Ultra-sensitive for lighters and small flames
 CONFIDENCE_THRESHOLD_ALERT = 0.20     # Lower threshold for faster critical alerts
 
-app = FastAPI(title="Advanced Fire Detection Service", version="2.0.0")
+app = FastAPI(title="ML Fire Detection Service", version="3.0.0")
+
+# Initialize ML detector and alert manager
+ml_detector = MLFireDetector(
+    model_path=ML_MODEL_PATH if USE_ML_DETECTION else None,
+    confidence_threshold=CONFIDENCE_THRESHOLD,
+    use_color_fallback=USE_COLOR_FALLBACK
+)
+
+alert_manager = AlertManager(n8n_webhook_url=N8N_WEBHOOK_URL)
 
 
 class FireDetectionResult(BaseModel):
@@ -298,10 +321,13 @@ detector = AdvancedFireDetector()
 async def root():
     """Root endpoint"""
     return {
-        "service": "Fire Detection API",
-        "version": "2.0.0",
+        "service": "ML Fire Detection API",
+        "version": "3.0.0",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "detection_method": ml_detector.get_detection_method(),
+        "ml_available": ml_detector.is_ml_available(),
+        "n8n_configured": N8N_WEBHOOK_URL is not None
     }
 
 
@@ -310,9 +336,102 @@ async def health():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "2.0.0",
-        "features": ["smoke_detection", "flame_detection", "severity_classification"]
+        "version": "3.0.0",
+        "features": ["ml_detection", "smoke_detection", "flame_detection", "n8n_integration"],
+        "detection_method": ml_detector.get_detection_method(),
+        "ml_model_loaded": ml_detector.is_ml_available()
     }
+
+
+@app.post("/detect-fire-ml")
+async def detect_fire_ml(
+    file: UploadFile = File(...),
+    camera_id: int = Form(...),
+    camera_name: str = Form("Unknown Camera"),
+    floor_id: int = Form(...),
+    room_location: str = Form("Unknown Room"),
+    send_n8n_alert: bool = Form(True)
+):
+    """
+    ML-based fire detection with N8N alert integration.
+    Detects fire using YOLOv8 ML model (or color fallback).
+    Sends alerts to N8N for WhatsApp/Voice notifications.
+    """
+    try:
+        # Read image
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            raise HTTPException(status_code=400, detail="Invalid image")
+        
+        # Detect fire using ML
+        result = ml_detector.detect(frame, return_annotated=False)
+        
+        # If fire detected, send alerts
+        if result['detected'] and result['confidence'] >= CONFIDENCE_THRESHOLD:
+            logger.info(f"🔥 FIRE DETECTED! Type: {result['type']}, Confidence: {result['confidence']:.2%}, Method: {result['method']}")
+            
+            # Save screenshot
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            screenshot_filename = f"fire_cam{camera_id}_floor{floor_id}_{timestamp}.jpg"
+            screenshot_dir = os.path.join("..", "backend-laravel", "public", "storage", "alerts")
+            os.makedirs(screenshot_dir, exist_ok=True)
+            screenshot_path = os.path.join(screenshot_dir, screenshot_filename)
+            cv2.imwrite(screenshot_path, frame)
+            
+            # Get floor occupancy
+            occupancy_data = alert_manager.get_floor_occupancy(floor_id)
+            people_count = occupancy_data['people_count']
+            people_details = occupancy_data['people_details']
+            
+            # Send N8N alert if enabled
+            if send_n8n_alert:
+                alert_success = alert_manager.send_fire_alert(
+                    floor_id=floor_id,
+                    camera_id=camera_id,
+                    camera_name=camera_name,
+                    room=room_location,
+                    people_detected=people_details,
+                    fire_type=result['type'],
+                    confidence=result['confidence'],
+                    severity=result['severity'],
+                    screenshot_path=f"storage/alerts/{screenshot_filename}"
+                )
+                
+                # Send CRITICAL alert if people present
+                if people_count > 0:
+                    alert_manager.send_critical_evacuation_alert(
+                        floor_id=floor_id,
+                        camera_id=camera_id,
+                        people_count=people_count,
+                        fire_confidence=result['confidence']
+                    )
+            
+            return {
+                "detected": True,
+                "detection_method": result['method'],
+                "fire_type": result['type'],
+                "severity": result['severity'],
+                "confidence": result['confidence'],
+                "area_percentage": result['area_percentage'],
+                "bbox": result['bbox'],
+                "people_on_floor": people_count,
+                "screenshot_path": f"storage/alerts/{screenshot_filename}",
+                "alert_sent": send_n8n_alert,
+                "message": f"🔥 {result['type'].upper()} detected on Floor {floor_id} ({people_count} people present)"
+            }
+        
+        return {
+            "detected": False,
+            "detection_method": result['method'],
+            "message": "No fire detected"
+        }
+    
+    except Exception as e:
+        logger.error(f"ML Detection error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/detect-fire")
