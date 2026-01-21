@@ -1,0 +1,12 @@
+train: train/images
+val: valid/images
+
+nc: 3
+names: ['fire', 'other', 'smoke']
+
+roboflow:
+  workspace: mhmd-ci2ut
+  project: fire-detection-jru1n-idjdi
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/mhmd-ci2ut/fire-detection-jru1n-idjdi/dataset/1
