@@ -1,8 +1,8 @@
 """
-Live Camera Detection & Streaming Server
+Live Camera Detection & Streaming Server with ML Integration
 - Real-time camera streaming to dashboard
 - Face recognition with person tracking (5-minute timeout)
-- Fire detection with alert screenshots
+- ML-based fire detection with N8N alert integration
 - Integration with Laravel backend for alerts
 """
 from flask import Flask, Response, jsonify, request
@@ -13,10 +13,19 @@ import requests
 import time
 import json
 import base64
+import sys
 from datetime import datetime, timedelta
 from threading import Thread, Lock
 from collections import defaultdict
 import os
+
+# Add services to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from services.ml_fire_detector import MLFireDetector
+from services.alert_manager import AlertManager
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -24,7 +33,27 @@ CORS(app)
 # Configuration
 FACE_SERVICE_URL = "http://localhost:8001"
 LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
+N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL')
+ML_MODEL_PATH = os.getenv('ML_MODEL_PATH', 'ml_models/weights/fire_detection.pt')
+USE_ML_DETECTION = os.getenv('USE_ML_DETECTION', 'true').lower() == 'true'
 CAMERA_CONFIG_FILE = "camera_config.json"
+
+# Initialize ML fire detector and alert manager
+ml_fire_detector = MLFireDetector(
+    model_path=ML_MODEL_PATH if USE_ML_DETECTION else None,
+    confidence_threshold=float(os.getenv('FIRE_CONFIDENCE_THRESHOLD', '0.5')),
+    use_color_fallback=True
+)
+
+alert_manager = AlertManager(n8n_webhook_url=N8N_WEBHOOK_URL)
+
+print("="*80)
+print("LIVE CAMERA DETECTION & STREAMING SERVER - ML ENABLED")
+print("="*80)
+print(f"🔥 Fire Detection Method: {ml_fire_detector.get_detection_method()}")
+print(f"🤖 ML Model Available: {ml_fire_detector.is_ml_available()}")
+print(f"📱 N8N Webhook: {'Configured ✓' if N8N_WEBHOOK_URL else 'Not configured ✗'}")
+print("="*80)
 
 # Performance settings - MAXIMUM SPEED!
 CAMERA_FPS = 60  # Target FPS
@@ -308,96 +337,86 @@ class CameraStream:
             pass
             
     def _detect_fire(self, frame):
-        """Detect ONLY actual fire flames - very strict to avoid false positives from red lights"""
+        """ML-based fire detection with N8N alert integration"""
         try:
-            # Convert to HSV for color detection
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            # Use ML detector (falls back to color if ML unavailable)
+            result = ml_fire_detector.detect(frame, return_annotated=False)
             
-            # ULTRA-STRICT FIRE DETECTION - Excludes red lights, LEDs, faces
-            # Real fire characteristics:
-            # 1. Orange/Yellow dominant (NOT pure red like LEDs)
-            # 2. Extremely bright (250+ brightness)
-            # 3. High saturation (150+)
-            # 4. Irregular, flickering shape
-            
-            # Orange flames - PRIMARY fire indicator
-            lower_orange = np.array([8, 150, 230])  # Bright saturated orange
-            upper_orange = np.array([20, 255, 255])
-            mask_orange = cv2.inRange(hsv, lower_orange, upper_orange)
-            
-            # Yellow flames - SECONDARY fire indicator
-            lower_yellow = np.array([20, 120, 240])  # Bright yellow
-            upper_yellow = np.array([30, 255, 255])
-            mask_yellow = cv2.inRange(hsv, lower_yellow, upper_yellow)
-            
-            # EXCLUDE pure red (red LEDs, red lights have LOW saturation or mid brightness)
-            # Only detect DEEP saturated red that appears in real flames
-            lower_red = np.array([0, 200, 230])  # VERY high saturation + brightness
-            upper_red = np.array([6, 255, 255])
-            mask_red = cv2.inRange(hsv, lower_red, upper_red)
-            
-            # Combine fire colors (orange is most important)
-            fire_mask = cv2.bitwise_or(mask_orange, cv2.bitwise_or(mask_yellow, mask_red))
-            
-            # CRITICAL: Must be ULTRA bright (real fire is intensely bright)
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            _, ultra_bright = cv2.threshold(gray, 240, 255, cv2.THRESH_BINARY)  # Higher threshold
-            
-            # Fire = Highly saturated color + Ultra brightness
-            fire_mask = cv2.bitwise_and(fire_mask, ultra_bright)
-            
-            # Morphological operations
-            kernel = np.ones((3, 3), np.uint8)
-            fire_mask = cv2.morphologyEx(fire_mask, cv2.MORPH_OPEN, kernel)
-            fire_mask = cv2.dilate(fire_mask, kernel, iterations=1)
-            
-            # Count fire pixels
-            fire_pixels = cv2.countNonZero(fire_mask)
-            total_pixels = frame.shape[0] * frame.shape[1]
-            fire_ratio = fire_pixels / total_pixels
-            
-            # STRICT threshold - must be at least 2% of frame (real flame is visible, not tiny LED)
-            if fire_ratio > 0.02:  # 2% minimum - excludes small red LEDs
+            if result['detected']:
+                confidence = result['confidence']
+                fire_type = result['type']
+                severity = result['severity']
                 
-                # Must be clustered (not scattered pixels)
-                contours, _ = cv2.findContours(fire_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                if len(contours) > 0:
-                    # Get largest contour
-                    largest_contour = max(contours, key=cv2.contourArea)
-                    contour_area = cv2.contourArea(largest_contour)
-                    contour_ratio = contour_area / total_pixels
+                print(f"🔥 FIRE DETECTED! Type: {fire_type}, Method: {result['method']}, "
+                      f"Confidence: {confidence*100:.0f}%, Severity: {severity}")
+                
+                # Get current floor occupancy
+                occupancy_data = alert_manager.get_floor_occupancy(self.floor_id)
+                people_count = occupancy_data['people_count']
+                people_details = occupancy_data['people_details']
+                
+                # Check cooldown before sending alert
+                current_time = time.time()
+                last_alert = last_fire_alert_time.get(self.camera_id, 0)
+                
+                if current_time - last_alert > FIRE_ALERT_COOLDOWN:
+                    print(f"🚨 Sending FIRE ALERT via N8N")
+                    print(f"   Camera: {self.camera_id} ({self.name})")
+                    print(f"   Floor: {self.floor_id}, Room: {self.room}")
+                    print(f"   People on floor: {people_count}")
                     
-                    # Must have significant clustered area (2%+ prevents small LEDs)
-                    if contour_ratio > 0.02:
-                        # Verify it's flame-shaped (not circular like a light bulb)
-                        x, y, w, h = cv2.boundingRect(largest_contour)
-                        aspect_ratio = h / w if w > 0 else 0
-                        
-                        # Flames are elongated or compact, NOT wide and flat
-                        if aspect_ratio > 0.5:  # Must have some vertical dimension
-                            confidence = min(fire_ratio * 20, 1.0)
-                        
-                        # Draw bounding box
-                        annotated_frame = frame.copy()
-                        cv2.rectangle(annotated_frame, (x, y), (x+w, y+h), (0, 0, 255), 3)
-                        cv2.putText(annotated_frame, f"FIRE - {confidence*100:.0f}%", 
-                                   (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
-                        
-                        print(f"🔥 ACTUAL FIRE! Area: {fire_ratio*100:.1f}%, Cluster: {contour_ratio*100:.1f}%, Confidence: {confidence*100:.0f}%")
-                        
-                        # Send alert
-                        current_time = time.time()
-                        last_alert = last_fire_alert_time.get(self.camera_id, 0)
-                        
-                        if current_time - last_alert > FIRE_ALERT_COOLDOWN:
-                            print(f"🚨 Sending FIRE ALERT")
-                            print(f"   Camera {self.camera_id} current floor_id: {self.floor_id}")
-                            success = send_fire_alert(
-                                self.camera_id, self.name, self.floor_id,
-                                self.room, annotated_frame, confidence, "fire"
-                            )
-                            if success:
-                                last_fire_alert_time[self.camera_id] = current_time
+                    # Annotate frame with bounding box
+                    annotated_frame = frame.copy()
+                    if result['bbox']:
+                        x1, y1, x2, y2 = result['bbox']
+                        color = (0, 0, 255) if severity == 'critical' else (0, 165, 255)
+                        cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), color, 3)
+                        label = f"{fire_type.upper()} {confidence*100:.0f}% ({result['method']})"
+                        cv2.putText(annotated_frame, label, (x1, y1-10),
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                    
+                    # Save screenshot
+                    screenshot_path = save_screenshot(annotated_frame, self.camera_id, detection_type="fire")
+                    
+                    # Send N8N alert
+                    alert_success = alert_manager.send_fire_alert(
+                        floor_id=self.floor_id,
+                        camera_id=self.camera_id,
+                        camera_name=self.name,
+                        room=self.room,
+                        people_detected=people_details,
+                        fire_type=fire_type,
+                        confidence=confidence,
+                        severity=severity,
+                        screenshot_path=screenshot_path
+                    )
+                    
+                    # Send CRITICAL evacuation alert if people present
+                    if people_count > 0:
+                        print(f"⚠️  CRITICAL: {people_count} people need evacuation!")
+                        alert_manager.send_critical_evacuation_alert(
+                            floor_id=self.floor_id,
+                            camera_id=self.camera_id,
+                            people_count=people_count,
+                            fire_confidence=confidence
+                        )
+                    
+                    # Also send to Laravel backend (existing system)
+                    send_fire_alert(
+                        self.camera_id, self.name, self.floor_id,
+                        self.room, annotated_frame, confidence, fire_type
+                    )
+                    
+                    if alert_success:
+                        last_fire_alert_time[self.camera_id] = current_time
+                        print(f"✅ Fire alert sent successfully!")
+                    else:
+                        print(f"⚠️  Alert sending had issues (check logs)")
+        
+        except Exception as e:
+            print(f"❌ Error in fire detection: {e}")
+            import traceback
+            traceback.print_exc()
                                 print(f"✅ Alert sent!")
                         else:
                             print(f"⏳ Cooldown ({FIRE_ALERT_COOLDOWN - (current_time - last_alert):.0f}s)")

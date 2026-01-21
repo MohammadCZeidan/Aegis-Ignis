@@ -1,0 +1,279 @@
+{
+  "name": "Fire Alert System with WhatsApp & Voice",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fire-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook - Fire Alert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "fire-alert-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.alert_type }}",
+                    "value2": "CRITICAL_EVACUATION"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "critical_evacuation"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.alert_type }}",
+                    "value2": "FIRE_EMERGENCY"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "fire_emergency"
+            },
+            {
+              "conditions": {
+                "string": [
+                  {
+                    "value1": "={{ $json.alert_type }}",
+                    "value2": "PRESENCE_UPDATE"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "presence_update"
+            }
+          ]
+        },
+        "fallbackOutput": "extra"
+      },
+      "name": "Switch - Alert Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "twilioApi",
+        "fromNumber": "whatsapp:+14155238886",
+        "toNumber": "={{ $json.emergency_contact || 'whatsapp:+1234567890' }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "name": "WhatsApp - Fire Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "1",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "twilioApi",
+        "fromNumber": "+1234567890",
+        "toNumber": "={{ $json.emergency_contact_phone || '+1234567890' }}",
+        "twiml": "<Response><Say voice=\"alice\">Emergency alert! Fire detected on floor {{ $json.floor_id }}. {{ $json.people_count }} people need evacuation. Please evacuate immediately and call 911.</Say></Response>",
+        "options": {}
+      },
+      "name": "Voice Call - Critical Alert",
+      "type": "n8n-nodes-base.twilioVoice",
+      "typeVersion": 1,
+      "position": [700, 100],
+      "credentials": {
+        "twilioApi": {
+          "id": "1",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.backend_url || 'http://localhost:8000/api/v1' }}/alerts/fire",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "camera_id",
+              "value": "={{ $json.camera_id }}"
+            },
+            {
+              "name": "camera_name",
+              "value": "={{ $json.camera_name }}"
+            },
+            {
+              "name": "floor_id",
+              "value": "={{ $json.floor_id }}"
+            },
+            {
+              "name": "room",
+              "value": "={{ $json.room }}"
+            },
+            {
+              "name": "event_type",
+              "value": "fire"
+            },
+            {
+              "name": "severity",
+              "value": "={{ $json.severity }}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{ $json.confidence * 100 }}"
+            },
+            {
+              "name": "fire_type",
+              "value": "={{ $json.fire_type }}"
+            },
+            {
+              "name": "screenshot_path",
+              "value": "={{ $json.screenshot_path }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "HTTP - Log to Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Alert processed\", \"alert_type\": $json.alert_type } }}"
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "twilioApi",
+        "fromNumber": "whatsapp:+14155238886",
+        "toNumber": "whatsapp:+1234567890",
+        "message": "📊 Floor {{ $json.floor_id }} occupancy update: {{ $json.people_count }} people present.",
+        "options": {}
+      },
+      "name": "WhatsApp - Presence Update",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "1",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Fire Alert": {
+      "main": [
+        [
+          {
+            "node": "Switch - Alert Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Alert Type": {
+      "main": [
+        [
+          {
+            "node": "Voice Call - Critical Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp - Fire Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Fire Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp - Presence Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Fire Alert": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Log to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Voice Call - Critical Alert": {
+      "main": [
+        [
+          {
+            "node": "HTTP - Log to Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP - Log to Backend": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Presence Update": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-01-21T00:00:00.000Z",
+  "versionId": "1"
+}
