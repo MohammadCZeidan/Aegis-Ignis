@@ -26,7 +26,7 @@ class ServiceStatus extends Command
      */
     public function handle()
     {
-        $this->info('📊 AEGIS-IGNIS Service Status');
+        $this->info('AEGIS-IGNIS Service Status');
         $this->newLine();
 
         // Check Laravel
@@ -60,7 +60,7 @@ class ServiceStatus extends Command
                     $this->line("    Model: " . ($data['model_loaded'] ? 'Loaded' : 'Not loaded'));
                 }
             } else {
-                $this->warn("  ⚠ {$name} responded with status {$response->status()}");
+                $this->warn("  [WARNING] {$name} responded with status {$response->status()}");
             }
         } catch (\Exception $e) {
             $this->error("  ✗ {$name} is not running or unreachable");

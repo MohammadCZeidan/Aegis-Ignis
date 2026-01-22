@@ -29,7 +29,7 @@ echo "  Fire Events: " . \App\Models\FireEvent::count() . "\n\n";
 // Re-enable foreign key checks
 \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-echo "✅ DELETED ALL $alertCount ALERTS!\n\n";
+echo "[OK] DELETED ALL $alertCount ALERTS!\n\n";
 
 // Check camera configuration
 echo "===== CAMERA CONFIGURATION =====\n\n";
@@ -52,4 +52,4 @@ if ($camera) {
     echo "Camera 1 NOT FOUND!\n";
 }
 
-echo "\n✅ DONE!\n";
+echo "\n[OK] DONE!\n";

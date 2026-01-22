@@ -79,8 +79,8 @@ export function Settings() {
         location: cam.room || ''
       }));
       
-      console.log('📷 Loaded cameras:', assignments);
-      console.log('🏢 Loaded floors:', floorsData);
+      console.log('Loaded cameras:', assignments);
+      console.log('Loaded floors:', floorsData);
       
       setCameraAssignments(assignments);
       setFloors(floorsData);
@@ -115,7 +115,7 @@ export function Settings() {
     try {
       await loadingService.withLoading(async () => {
         // 1. Update Laravel backend (database)
-        console.log('📝 Updating Laravel database...');
+        console.log('Updating Laravel database...');
         const updatePromises = cameraAssignments.map(assignment =>
           dataService.updateCamera(parseInt(assignment.cameraId), {
             floor_id: parseInt(assignment.floorId),
@@ -129,7 +129,7 @@ export function Settings() {
         // 2. Update streaming server
         let streamingServerUpdated = false;
         try {
-          console.log('📝 Updating camera streaming server...');
+          console.log('Updating camera streaming server...');
           console.log('Sending assignments:', cameraAssignments);
           const streamResponse = await fetch(`${API_CONFIG.CAMERA_SERVICE}/api/cameras/update-config`, {
             method: 'POST',
@@ -146,13 +146,13 @@ export function Settings() {
             console.error('Stream server error:', await streamResponse.text());
           }
         } catch (streamError) {
-          console.error('⚠ Streaming server error:', streamError);
+          console.error('[WARNING] Streaming server error:', streamError);
         }
         
         // 3. Update floor monitoring service
         let floorMonitoringUpdated = false;
         try {
-          console.log('📝 Updating floor monitoring service...');
+          console.log('Updating floor monitoring service...');
           console.log('Sending assignments:', cameraAssignments);
           const floorResponse = await fetch(`${API_CONFIG.FLOOR_SERVICE}/api/cameras/update-floor-assignments`, {
             method: 'POST',
@@ -169,7 +169,7 @@ export function Settings() {
             console.error('Floor monitoring error:', await floorResponse.text());
           }
         } catch (floorError) {
-          console.error('⚠ Floor monitoring error:', floorError);
+          console.error('[WARNING] Floor monitoring error:', floorError);
         }
         
         // Show success notification
@@ -195,7 +195,7 @@ export function Settings() {
       }, 'Saving camera assignments...');
       
     } catch (error) {
-      console.error('❌ Failed to save assignments:', error);
+      console.error('[ERROR] Failed to save assignments:', error);
       notificationService.error('Failed to save camera assignments', {
         description: error instanceof Error ? error.message : 'Please try again',
         duration: 5000,

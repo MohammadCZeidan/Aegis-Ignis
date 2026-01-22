@@ -190,14 +190,14 @@ async def process_camera_feed(camera_id: int, stream_url: str, floor_id: int):
         cap = cv2.VideoCapture(stream_url)
         
         if not cap.isOpened():
-            logger.error(f"❌ Cannot open camera {camera_id}: {stream_url}")
+            logger.error(f"Cannot open camera {camera_id}: {stream_url}")
             return
         
         while active_monitoring.get(camera_id, False):
             ret, frame = cap.read()
             
             if not ret:
-                logger.warning(f"⚠️ Cannot read from camera {camera_id}")
+                logger.warning(f"Cannot read from camera {camera_id}")
                 await asyncio.sleep(1)
                 continue
             

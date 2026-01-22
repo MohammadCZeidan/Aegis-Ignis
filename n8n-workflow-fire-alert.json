@@ -168,7 +168,7 @@
         "authentication": "twilioApi",
         "fromNumber": "whatsapp:+14155238886",
         "toNumber": "whatsapp:+1234567890",
-        "message": "📊 Floor {{ $json.floor_id }} occupancy update: {{ $json.people_count }} people present.",
+        "message": "Floor {{ $json.floor_id }} occupancy update: {{ $json.people_count }} people present.",
         "options": {}
       },
       "name": "WhatsApp - Presence Update",

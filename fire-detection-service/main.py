@@ -540,9 +540,9 @@ class ServiceRunner:
                     confidence=detection['confidence'],
                     severity='critical' if detection['confidence'] > 0.7 else 'warning'
                 )
-                logger.info(f"✅ WhatsApp alert sent for fire on Floor {CONFIG['floor_id']}")
+                logger.info(f"WhatsApp alert sent for fire on Floor {CONFIG['floor_id']}")
             except Exception as e:
-                logger.error(f"❌ Failed to send WhatsApp alert: {e}")
+                logger.error(f"Failed to send WhatsApp alert: {e}")
 
 
 # Global service instance

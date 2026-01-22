@@ -435,7 +435,7 @@ async def register_face(
                 f"Invalid embedding dimension: {len(face_embedding)} (expected {EXPECTED_EMBEDDING_DIM}). Please restart the face service."
             )
         
-        # 🔍 CRITICAL DUPLICATE CHECK - Use existing cache (already fresh from UI check)
+        # CRITICAL DUPLICATE CHECK - Use existing cache (already fresh from UI check)
         cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
         if cache_age > 10:
             logger.info(f" Cache stale ({cache_age}s) - Refreshing...")

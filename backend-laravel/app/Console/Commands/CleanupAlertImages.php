@@ -90,7 +90,7 @@ class CleanupAlertImages extends Command
                 'days' => $deleteAll ? 'all' : $days
             ]);
             
-            $this->info("✅ Cleanup completed!");
+            $this->info("Cleanup completed!");
             $this->info("   - Updated {$deletedCount} alerts");
             $this->info("   - Deleted {$filesDeleted} files");
             
@@ -101,7 +101,7 @@ class CleanupAlertImages extends Command
                 'error' => $e->getMessage()
             ]);
             
-            $this->error("❌ Cleanup failed: {$e->getMessage()}");
+            $this->error("Cleanup failed: {$e->getMessage()}");
             return 1;
         }
     }

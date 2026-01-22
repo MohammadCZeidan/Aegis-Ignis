@@ -47,23 +47,23 @@ export default function FloorMonitoring() {
     const loadFloors = async () => {
       try {
         const url = buildBackendUrl('/floors');
-        console.log('🔍 Floor Monitoring - Fetching floors from:', url);
+        console.log('Floor Monitoring - Fetching floors from:', url);
         const response = await fetch(url);
-        console.log('✅ Floor Monitoring - Response status:', response.status);
+        console.log('Floor Monitoring - Response status:', response.status);
         const data = await response.json();
-        console.log('📊 Floor Monitoring - Raw data received:', data);
-        console.log('📊 Floor Monitoring - Is Array?', Array.isArray(data));
-        console.log('📊 Floor Monitoring - Length:', data?.length);
+        console.log('Floor Monitoring - Raw data received:', data);
+        console.log('Floor Monitoring - Is Array?', Array.isArray(data));
+        console.log('Floor Monitoring - Length:', data?.length);
         
         setFloors(data);
-        console.log('✅ Floor Monitoring - Floors set to state:', data);
+        console.log('Floor Monitoring - Floors set to state:', data);
         
         if (data.length > 0 && !selectedFloor) {
           setSelectedFloor(data[0].id);
-          console.log('✅ Floor Monitoring - Selected first floor:', data[0].id, data[0].name);
+          console.log('Floor Monitoring - Selected first floor:', data[0].id, data[0].name);
         }
       } catch (error) {
-        console.error('❌ Floor Monitoring - Failed to load floors:', error);
+        console.error('[ERROR] Floor Monitoring - Failed to load floors:', error);
       } finally {
         setLoading(false);
       }
@@ -275,7 +275,7 @@ export default function FloorMonitoring() {
             <CardContent>
               {fireDetections.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  <p className="text-lg">✅ No fire detected</p>
+                  <p className="text-lg">No fire detected</p>
                   <p className="text-sm mt-2">This floor is safe</p>
                 </div>
               ) : (
@@ -308,7 +308,7 @@ export default function FloorMonitoring() {
                           {/* Fire Details */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-2xl">🔥</span>
+                              <span className="text-2xl">[FIRE]</span>
                               <h3 className="font-semibold text-gray-900 capitalize">
                                 {detection.fire_type || 'Fire'} Detection
                               </h3>

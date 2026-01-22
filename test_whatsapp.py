@@ -23,8 +23,8 @@ twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
 twilio_from = os.getenv('TWILIO_WHATSAPP_FROM')
 twilio_to = os.getenv('TWILIO_WHATSAPP_TO')
 
-print(f"   TWILIO_ACCOUNT_SID: {'✅ SET' if twilio_sid else '❌ NOT SET'}")
-print(f"   TWILIO_AUTH_TOKEN: {'✅ SET' if twilio_token else '❌ NOT SET'}")
+print(f"   TWILIO_ACCOUNT_SID: {'[SET]' if twilio_sid else '[NOT SET]'}")
+print(f"   TWILIO_AUTH_TOKEN: {'[SET]' if twilio_token else '[NOT SET]'}")
 print(f"   TWILIO_WHATSAPP_FROM: {twilio_from}")
 print(f"   TWILIO_WHATSAPP_TO: {twilio_to}")
 print()
@@ -33,16 +33,16 @@ print()
 print("2. Checking Twilio installation...")
 try:
     from twilio.rest import Client as TwilioClient
-    print("   ✅ Twilio library is installed")
+    print("   [OK] Twilio library is installed")
     twilio_available = True
 except ImportError as e:
-    print(f"   ❌ Twilio not installed: {e}")
+    print(f"   [ERROR] Twilio not installed: {e}")
     print("   Installing Twilio...")
     import subprocess
     subprocess.check_call([sys.executable, "-m", "pip", "install", "twilio"])
     from twilio.rest import Client as TwilioClient
     twilio_available = True
-    print("   ✅ Twilio installed successfully")
+    print("   [OK] Twilio installed successfully")
 print()
 
 # Test AlertManager initialization
@@ -53,9 +53,9 @@ try:
     alert_manager = AlertManager()
     
     if alert_manager.twilio_client:
-        print("   ✅ Twilio client initialized")
+        print("   [OK] Twilio client initialized")
     else:
-        print("   ❌ Twilio client NOT initialized")
+        print("   [ERROR] Twilio client NOT initialized")
         if not twilio_sid or not twilio_token:
             print("      Reason: Missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN")
     print()
@@ -78,13 +78,13 @@ try:
         )
         
         if result:
-            print("   ✅ Fire alert sent successfully!")
+            print("   [OK] Fire alert sent successfully!")
             print("      Check your WhatsApp for the message")
         else:
-            print("   ❌ Fire alert failed")
+            print("   [ERROR] Fire alert failed")
         print()
     except Exception as e:
-        print(f"   ❌ Error sending fire alert: {e}")
+        print(f"   [ERROR] Error sending fire alert: {e}")
         import traceback
         traceback.print_exc()
         print()
@@ -102,20 +102,20 @@ try:
         )
         
         if result:
-            print("   ✅ Presence alert sent successfully!")
+            print("   [OK] Presence alert sent successfully!")
             print("      Check your WhatsApp for the message")
         else:
-            print("   ⚠️ Presence alert may not have been sent")
+            print("   [WARNING] Presence alert may not have been sent")
             print("      (This is normal if N8N webhook is not configured)")
         print()
     except Exception as e:
-        print(f"   ❌ Error sending presence alert: {e}")
+        print(f"   [ERROR] Error sending presence alert: {e}")
         import traceback
         traceback.print_exc()
         print()
     
 except Exception as e:
-    print(f"   ❌ Error initializing AlertManager: {e}")
+    print(f"   [ERROR] Error initializing AlertManager: {e}")
     import traceback
     traceback.print_exc()
     print()

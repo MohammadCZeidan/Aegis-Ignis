@@ -49,7 +49,7 @@ class StopServices extends Command
         }
 
         $this->newLine();
-        $this->info('✅ Services stopped!');
+        $this->info('Services stopped!');
     }
 
     protected function stopService(int $port, string $serviceName): void

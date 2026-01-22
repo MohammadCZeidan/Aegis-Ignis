@@ -34,7 +34,7 @@ class CleanupUnusedPhotos extends Command
         $this->newLine();
 
         if ($dryRun) {
-            $this->warn('⚠️  DRY RUN MODE - No files will be deleted');
+            $this->warn('DRY RUN MODE - No files will be deleted');
             $this->newLine();
         }
 
@@ -51,7 +51,7 @@ class CleanupUnusedPhotos extends Command
         ];
 
         // Get all photos referenced in the database (shown on website)
-        $this->info('📊 Scanning database for photos shown on website...');
+        $this->info('Scanning database for photos shown on website...');
         
         $usedPaths = [];
         
@@ -113,7 +113,7 @@ class CleanupUnusedPhotos extends Command
                 continue;
             }
             
-            $this->info("📁 Scanning: storage/app/public/{$directory}");
+            $this->info("Scanning: storage/app/public/{$directory}");
             
             $files = scandir($fullPath);
             $filesInDir = 0;
@@ -167,7 +167,7 @@ class CleanupUnusedPhotos extends Command
         $this->newLine();
 
         if (count($unusedFiles) === 0) {
-            $this->info('✅ No unused files found! Storage is clean.');
+            $this->info('No unused files found! Storage is clean.');
             return 0;
         }
 
@@ -177,17 +177,17 @@ class CleanupUnusedPhotos extends Command
         }
         
         $spaceMB = round($stats['space_freed'] / 1024 / 1024, 2);
-        $this->warn("💾 Space to be freed: {$spaceMB} MB from {$stats['unused_files']} files");
+        $this->warn("Space to be freed: {$spaceMB} MB from {$stats['unused_files']} files");
         $this->newLine();
 
         // Delete files
         if (!$dryRun) {
             if (!$force && !$this->confirm('Delete all unused photos?', true)) {
-                $this->error('❌ Operation cancelled.');
+                $this->error('Operation cancelled.');
                 return 1;
             }
             
-            $this->info('🗑️  Deleting unused files...');
+            $this->info('Deleting unused files...');
             
             $progressBar = $this->output->createProgressBar(count($unusedFiles));
             $progressBar->start();
@@ -218,7 +218,7 @@ class CleanupUnusedPhotos extends Command
             $this->newLine();
             
             if ($stats['errors'] === 0) {
-                $this->info('✅ All unused photos successfully deleted!');
+                $this->info('All unused photos successfully deleted!');
                 
                 // Log the cleanup
                 \Log::info('Automatic photo cleanup completed', [
@@ -226,10 +226,10 @@ class CleanupUnusedPhotos extends Command
                     'space_freed_mb' => $spaceMB
                 ]);
             } else {
-                $this->warn("⚠️  Completed with {$stats['errors']} errors.");
+                $this->warn("Completed with {$stats['errors']} errors.");
             }
         } else {
-            $this->info('✅ Dry run complete. No files deleted.');
+            $this->info('Dry run complete. No files deleted.');
             $this->line('   Run without --dry-run to delete files.');
         }
 

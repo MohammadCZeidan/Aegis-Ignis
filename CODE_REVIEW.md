@@ -4,11 +4,11 @@
 
 This is a comprehensive code review of the Aegis-Ignis smart building fire detection and face recognition system. The project shows good architectural separation with microservices, but has several critical issues that need attention.
 
-**Overall Assessment:** ⚠️ **Needs Improvement** - Functional but requires significant refactoring for production readiness.
+**Overall Assessment:** **Needs Improvement** - Functional but requires significant refactoring for production readiness.
 
 ---
 
-## 🔴 Critical Issues
+## Critical Issues
 
 ### 1. **Security Vulnerabilities**
 
@@ -64,7 +64,7 @@ This is a comprehensive code review of the Aegis-Ignis smart building fire detec
 
 ---
 
-## 🟡 Major Issues
+## Major Issues
 
 ### 4. **Code Duplication**
 
@@ -125,7 +125,7 @@ This is a comprehensive code review of the Aegis-Ignis smart building fire detec
 
 #### Inconsistent Error Messages
 - **Location**: Throughout codebase
-- **Issue**: Mix of emoji (🔥, ✅) and plain text in logs
+- **Issue**: Mix of emoji and plain text in logs
 - **Problem**: Hard to parse programmatically, inconsistent
 - **Fix**: Structured logging (JSON format)
 
@@ -141,7 +141,7 @@ This is a comprehensive code review of the Aegis-Ignis smart building fire detec
 
 ---
 
-## 🟢 Minor Issues & Suggestions
+## Minor Issues & Suggestions
 
 ### 8. **Documentation**
 
@@ -204,7 +204,7 @@ This is a comprehensive code review of the Aegis-Ignis smart building fire detec
 
 ---
 
-## 📊 Code Metrics
+## Code Metrics
 
 ### Complexity
 - **High**: `fire-detection-service/main.py` (667 lines, multiple responsibilities)
@@ -222,32 +222,32 @@ This is a comprehensive code review of the Aegis-Ignis smart building fire detec
 
 ---
 
-## 🎯 Priority Recommendations
+## Priority Recommendations
 
 ### Immediate (Before Production)
-1. ✅ Fix CORS configuration (security)
-2. ✅ Add API authentication for microservices
-3. ✅ Implement proper error handling with retries
-4. ✅ Add input validation on all endpoints
-5. ✅ Remove duplicate configuration state
+1. Fix CORS configuration (security)
+2. Add API authentication for microservices
+3. Implement proper error handling with retries
+4. Add input validation on all endpoints
+5. Remove duplicate configuration state
 
 ### Short Term (Next Sprint)
-1. ✅ Extract shared code to common library
-2. ✅ Add health checks with dependency validation
-3. ✅ Implement structured logging
-4. ✅ Add unit tests for critical paths
-5. ✅ Use async/threading for parallel detection
+1. Extract shared code to common library
+2. Add health checks with dependency validation
+3. Implement structured logging
+4. Add unit tests for critical paths
+5. Use async/threading for parallel detection
 
 ### Long Term (Technical Debt)
-1. ✅ Refactor large files into smaller modules
-2. ✅ Implement service discovery
-3. ✅ Add comprehensive integration tests
-4. ✅ Create API documentation
-5. ✅ Set up monitoring and alerting
+1. Refactor large files into smaller modules
+2. Implement service discovery
+3. Add comprehensive integration tests
+4. Create API documentation
+5. Set up monitoring and alerting
 
 ---
 
-## 🔍 Specific Code Examples
+## Specific Code Examples
 
 ### Example 1: Race Condition
 ```python
@@ -257,14 +257,14 @@ def get_people_on_floor(self, floor_id: int) -> List[int]:
         current_time = datetime.now()
         people = []
         
-        for employee_id, data in list(self.presence_data.items()):  # ⚠️ Creates copy
+        for employee_id, data in list(self.presence_data.items()):  # Creates copy
             if data['floor_id'] == floor_id:
                 time_since_seen = (current_time - data['last_seen']).total_seconds()
                 
                 if time_since_seen <= self.timeout_seconds:
                     people.append(employee_id)
                 else:
-                    del self.presence_data[employee_id]  # ⚠️ Modifying during iteration
+                    del self.presence_data[employee_id]  # Modifying during iteration
 ```
 
 **Problem**: Modifying dict during iteration (even with `list()` copy) can cause issues.
@@ -277,7 +277,7 @@ def get_people_on_floor(self, floor_id: int) -> List[int]:
 except Exception as e:
     logger.error(f"Error fetching camera location: {e}")
     CameraLocationService._use_default_location()
-    return False  # ⚠️ Returns False but service continues
+    return False  # Returns False but service continues
 ```
 
 **Problem**: Service continues running with invalid configuration.
@@ -287,10 +287,10 @@ except Exception as e:
 ### Example 3: Magic Numbers
 ```python
 # fire-detection-service/main.py:155-171
-WHITE_LOWER = np.array([0, 0, 200])  # ⚠️ Why 200?
+WHITE_LOWER = np.array([0, 0, 200])  # Why 200?
 WHITE_UPPER = np.array([180, 60, 255])
-BRIGHTNESS_THRESHOLD = 253  # ⚠️ Why 253?
-MIN_CONTOUR_AREA = 3000  # ⚠️ Why 3000?
+BRIGHTNESS_THRESHOLD = 253  # Why 253?
+MIN_CONTOUR_AREA = 3000  # Why 3000?
 ```
 
 **Fix**: Extract to named constants with documentation:
@@ -305,7 +305,7 @@ FIRE_DETECTION_THRESHOLDS = {
 
 ---
 
-## ✅ Positive Aspects
+## Positive Aspects
 
 1. **Good Separation of Concerns**: Services are well-separated (fire, face, camera)
 2. **Modern Stack**: FastAPI, React, Laravel - good choices
@@ -315,7 +315,7 @@ FIRE_DETECTION_THRESHOLDS = {
 
 ---
 
-## 📝 Conclusion
+## Conclusion
 
 The codebase is **functional but needs significant improvement** before production deployment. The main concerns are:
 
@@ -329,5 +329,4 @@ The codebase is **functional but needs significant improvement** before producti
 ---
 
 *Generated: 2025-01-21*
-*Reviewer: AI Code Review Assistant*
 

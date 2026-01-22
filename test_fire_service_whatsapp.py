@@ -28,14 +28,14 @@ try:
     fire_service = FireDetectionService()
     
     if hasattr(fire_service, 'alert_manager'):
-        print("   ✅ AlertManager initialized in FireDetectionService")
+        print("   [OK] AlertManager initialized in FireDetectionService")
         
         if fire_service.alert_manager.twilio_client:
-            print("   ✅ Twilio client is available")
+            print("   [OK] Twilio client is available")
         else:
-            print("   ❌ Twilio client not available")
+            print("   [ERROR] Twilio client not available")
     else:
-        print("   ❌ AlertManager not found in FireDetectionService")
+        print("   [ERROR] AlertManager not found in FireDetectionService")
     
     print("\n2. Simulating fire detection with people on floor...")
     
@@ -55,19 +55,19 @@ try:
     )
     
     if result:
-        print("   ✅ Fire alert sent via WhatsApp!")
+        print("   [OK] Fire alert sent via WhatsApp!")
         print("      Recipients should receive WhatsApp message with:")
         print("      - Floor information")
         print("      - People present on the floor")
         print("      - Evacuation instructions")
     else:
-        print("   ❌ Failed to send fire alert")
+        print("   [ERROR] Failed to send fire alert")
     
     print("\n" + "="*80)
     print("TEST COMPLETE - Fire detection WhatsApp alerts are ready!")
     print("="*80 + "\n")
     
 except Exception as e:
-    print(f"❌ Error: {e}")
+    print(f"[ERROR] Error: {e}")
     import traceback
     traceback.print_exc()

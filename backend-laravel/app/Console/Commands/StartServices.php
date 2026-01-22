@@ -34,7 +34,7 @@ class StartServices extends Command
         $startFace = $this->option('face') || $startAll;
         $startFire = $this->option('fire') || $startAll;
 
-        $this->info('🚀 Starting AEGIS-IGNIS Services...');
+        $this->info('Starting AEGIS-IGNIS Services...');
         $this->newLine();
 
         if ($startFace) {
@@ -51,7 +51,7 @@ class StartServices extends Command
         }
 
         $this->newLine();
-        $this->info('✅ Services started!');
+        $this->info('Services started!');
         $this->info('   • Laravel API: http://localhost:8000');
         if ($startFace) {
             $this->info('   • Face Service: http://localhost:8001');

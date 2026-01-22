@@ -380,7 +380,7 @@ async def detect_fire_ml(
         fire_type = detection_result['type']
         method = detection_result['method']
         
-        logger.info(f"🔍 Detection - Method: {method}, Type: {fire_type}, Confidence: {confidence*100:.2f}%, Detected: {detected}")
+        logger.info(f"Detection - Method: {method}, Type: {fire_type}, Confidence: {confidence*100:.2f}%, Detected: {detected}")
         
         if detected:
             logger.warning(f" FIRE DETECTED! Confidence: {confidence*100:.2f}% (Method: {method})")

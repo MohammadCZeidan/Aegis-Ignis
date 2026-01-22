@@ -371,7 +371,7 @@ async def detect_fire_ml(
         
         # If fire detected, send alerts
         if result['detected'] and result['confidence'] >= CONFIDENCE_THRESHOLD:
-            logger.info(f"🔥 FIRE DETECTED! Type: {result['type']}, Confidence: {result['confidence']:.2%}, Method: {result['method']}")
+            logger.info(f"FIRE DETECTED! Type: {result['type']}, Confidence: {result['confidence']:.2%}, Method: {result['method']}")
             
             # Save screenshot
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -420,7 +420,7 @@ async def detect_fire_ml(
                 "people_on_floor": people_count,
                 "screenshot_path": f"storage/alerts/{screenshot_filename}",
                 "alert_sent": send_n8n_alert,
-                "message": f"🔥 {result['type'].upper()} detected on Floor {floor_id} ({people_count} people present)"
+                "message": f"{result['type'].upper()} detected on Floor {floor_id} ({people_count} people present)"
             }
         
         return {

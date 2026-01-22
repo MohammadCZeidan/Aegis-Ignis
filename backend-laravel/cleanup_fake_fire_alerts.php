@@ -10,20 +10,20 @@ echo "===== CLEANING FAKE FIRE ALERTS =====\n\n";
 
 // Delete alerts without screenshots (definitely fake)
 $deletedNoScreenshot = \App\Models\Alert::whereNull('screenshot_path')->delete();
-echo "✅ Deleted $deletedNoScreenshot alerts without screenshots\n";
+echo "[OK] Deleted $deletedNoScreenshot alerts without screenshots\n";
 
 // Delete old alerts with low confidence (<60%)
 $deletedLowConfidence = \App\Models\Alert::where('confidence', '<', 60)->delete();
-echo "✅ Deleted $deletedLowConfidence alerts with confidence <60%\n";
+echo "[OK] Deleted $deletedLowConfidence alerts with confidence <60%\n";
 
 // Delete alerts older than 1 day (cleanup old data)
 $oneDayAgo = now()->subDay();
 $deletedOld = \App\Models\Alert::where('created_at', '<', $oneDayAgo)->delete();
-echo "✅ Deleted $deletedOld alerts older than 24 hours\n";
+echo "[OK] Deleted $deletedOld alerts older than 24 hours\n";
 
 // Show remaining
 $remaining = \App\Models\Alert::count();
-echo "\n📊 Remaining alerts: $remaining\n";
+echo "\nRemaining alerts: $remaining\n";
 
 if ($remaining > 0) {
     echo "\nRecent HIGH confidence alerts:\n";
@@ -35,9 +35,9 @@ if ($remaining > 0) {
         ->get(['id', 'confidence', 'detected_at', 'screenshot_path']);
     
     foreach ($recent as $alert) {
-        $hasScreenshot = $alert->screenshot_path ? '✅' : '❌';
+        $hasScreenshot = $alert->screenshot_path ? '[OK]' : '[NO]';
         echo "#{$alert->id} - {$alert->confidence}% - {$alert->detected_at} {$hasScreenshot}\n";
     }
 }
 
-echo "\n✅ CLEANUP COMPLETE!\n";
+echo "\n[OK] CLEANUP COMPLETE!\n";

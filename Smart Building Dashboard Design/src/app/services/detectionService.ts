@@ -238,14 +238,14 @@ class DetectionService {
       
       // Show critical alert
       notificationService.error(
-        `🔥 FIRE DETECTED! ${detection.location} - ${Math.round(detection.confidence * 100)}% confidence`,
+        `FIRE DETECTED! ${detection.location} - ${Math.round(detection.confidence * 100)}% confidence`,
         10000 // Show for 10 seconds
       );
       
       // Play alert sound if available
       this.playAlertSound();
       
-      console.error('🔥🔥🔥 FIRE ALERT 🔥🔥🔥', {
+      console.error('FIRE ALERT', {
         location: detection.location,
         camera: detection.cameraId,
         confidence: `${Math.round(detection.confidence * 100)}%`,

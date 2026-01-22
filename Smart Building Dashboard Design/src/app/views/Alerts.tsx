@@ -192,7 +192,7 @@ export function Alerts() {
                             }}
                           />
                           <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold">
-                            🔥 FIRE DETECTED
+                            FIRE DETECTED
                           </div>
                         </div>
                       )}

@@ -356,7 +356,7 @@ class CameraStream:
                 fire_type = result['type']
                 severity = result['severity']
                 
-                print(f"🔥 FIRE DETECTED! Type: {fire_type}, Method: {result['method']}, "
+                print(f"FIRE DETECTED! Type: {fire_type}, Method: {result['method']}, "
                       f"Confidence: {confidence*100:.0f}%, Severity: {severity}")
                 
                 # Get current floor occupancy
@@ -618,7 +618,7 @@ def update_camera_config():
                 print(f"   Camera {camera_id}: Floor {old_floor} → {floor_id}, Room '{old_room}' → '{location}'")
                 print(f"    New alerts will go to floor {floor_id}, old alerts stay on floor {old_floor}")
             else:
-                print(f"  ⚠ Camera {camera_id} not found in active cameras")
+                print(f"  [WARNING] Camera {camera_id} not found in active cameras")
         
         print(f"✓ Camera config updated: {len(assignments)} cameras")
         print(f"✓ Config file saved to: {CAMERA_CONFIG_FILE}")

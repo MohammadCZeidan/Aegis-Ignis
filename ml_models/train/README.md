@@ -1,8 +1,8 @@
-# 🔥 Fire Detection Model Training
+# Fire Detection Model Training
 
 Train your own custom YOLOv8 fire detection model for the Aegis-Ignis system.
 
-## 🚀 Quick Start (3 Steps)
+## Quick Start (3 Steps)
 
 ### Windows Users (Easiest)
 ```bash
@@ -45,7 +45,7 @@ python fire_detection_train.py --data fire_dataset/data.yaml
 
 ---
 
-## ⚡ Common Commands
+## Common Commands
 
 ### Prepare Dataset
 ```bash
@@ -101,7 +101,7 @@ python test_model.py \
 
 ---
 
-## 📊 Recommended Datasets
+## Recommended Datasets
 
 ### Roboflow Universe (Recommended)
 1. Visit: https://universe.roboflow.com/
@@ -117,7 +117,7 @@ python test_model.py \
 
 ---
 
-## 🎯 Model Recommendations
+## Model Recommendations
 
 | Scenario | Model | Epochs | Batch | Time (GPU) |
 |----------|-------|--------|-------|------------|
@@ -129,7 +129,7 @@ python test_model.py \
 
 ---
 
-## 📈 Expected Results
+## Expected Results
 
 Good training results:
 - **mAP50**: 0.75-0.90 (detection accuracy)
@@ -139,7 +139,7 @@ Good training results:
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -166,7 +166,7 @@ pip install ultralytics opencv-python numpy pyyaml
 
 ---
 
-## 🔧 Advanced Options
+## Advanced Options
 
 ### Custom Training Parameters
 ```bash
@@ -216,7 +216,7 @@ ml_models/
 
 ---
 
-## 🚀 Deploy Trained Model
+## Deploy Trained Model
 
 ### 1. Update Configuration
 ```bash
@@ -247,31 +247,31 @@ curl -X POST "http://localhost:8002/detect-fire-ml" \
 
 ---
 
-## 💡 Tips for Better Results
+## Tips for Better Results
 
 ### Data Quality
-✅ **DO:**
+**DO:**
 - Use diverse images (day/night, indoor/outdoor)
 - Include various fire types (small, large, smoke)
 - Balanced classes (equal fire/smoke samples)
 - High-quality annotations
 - 80/20 train/val split minimum
 
-❌ **DON'T:**
+**DON'T:**
 - Use blurry/low-res images
 - Copy same image multiple times
 - Skip validation set
 - Use only one type of fire
 
 ### Training
-✅ **DO:**
+**DO:**
 - Start with 100 epochs minimum
 - Monitor validation metrics
 - Use early stopping (patience)
 - Save checkpoints regularly
 - Test on new images after training
 
-❌ **DON'T:**
+**DON'T:**
 - Stop training too early
 - Ignore validation results
 - Overtrain on small dataset
@@ -288,7 +288,7 @@ curl -X POST "http://localhost:8002/detect-fire-ml" \
 
 ---
 
-## ✅ Quick Checklist
+## Quick Checklist
 
 - [ ] Install dependencies
 - [ ] Download/prepare dataset
@@ -304,4 +304,4 @@ curl -X POST "http://localhost:8002/detect-fire-ml" \
 
 **Ready to train?** Run `train.bat` (Windows) or follow the Quick Start above!
 
-Good luck! 🔥🚀
+Good luck!

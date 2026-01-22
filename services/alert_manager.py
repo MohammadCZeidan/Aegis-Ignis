@@ -160,9 +160,9 @@ class AlertManager:
             True if update was sent successfully
         """
         message = (
-            f"📊 Floor {floor_id} Occupancy Update\n"
-            f"👥 Current occupancy: {people_count} people\n"
-            f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}"
+            f"Floor {floor_id} Occupancy Update\n"
+            f"Current occupancy: {people_count} people\n"
+            f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
         
         alert_data = {
@@ -269,7 +269,7 @@ class AlertManager:
             if people_count > 0:
                 message_body += f" *URGENT: {people_count} people need evacuation!*\n\n"
             
-            message_body += "⚡ *Immediate action required!*"
+            message_body += "*Immediate action required!*"
             
             # Send WhatsApp message
             message = self.twilio_client.messages.create(

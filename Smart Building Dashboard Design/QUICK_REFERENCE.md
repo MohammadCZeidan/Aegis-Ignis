@@ -1,4 +1,4 @@
-# 🎯 Quick Reference - Optimized Dashboard
+# Quick Reference - Optimized Dashboard
 
 ## Common Tasks
 

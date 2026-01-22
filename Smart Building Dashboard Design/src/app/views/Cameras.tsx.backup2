@@ -118,7 +118,7 @@ export function Cameras({ onCameraFullscreen }: CamerasProps) {
               <div className="flex items-center gap-4">
                 <Flame className="h-8 w-8 animate-bounce" />
                 <div>
-                  <h2 className="text-xl font-bold">🔥 FIRE DETECTED - IMMEDIATE ACTION REQUIRED</h2>
+                  <h2 className="text-xl font-bold">FIRE DETECTED - IMMEDIATE ACTION REQUIRED</h2>
                   <p className="text-sm">
                     {detectionStats.fireDetections.map((d, idx) => (
                       <span key={idx}>
