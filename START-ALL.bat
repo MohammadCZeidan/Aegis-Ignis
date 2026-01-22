@@ -84,17 +84,45 @@ timeout /t 2 /nobreak >nul
 echo [OK] Web Dashboard launched
 echo.
 
-echo [8/8] Starting Employee Registration Portal (Port 5174)...
+echo [8/9] Starting Employee Registration Portal (Port 5174)...
 start "Employee Registration" powershell -NoExit -Command "cd '%CD%\face-registration'; $Host.UI.RawUI.WindowTitle='Employee Registration Portal'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Employee Registration Portal Starting...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; npm run dev"
 timeout /t 2 /nobreak >nul
 echo [OK] Employee Registration launched
+echo.
+
+echo [9/9] Starting React Native Mobile App...
+if exist "mobile-app\package.json" (
+    echo    Checking mobile app dependencies...
+    if not exist "mobile-app\node_modules" (
+        echo    [INFO] Installing mobile app dependencies (first time setup)...
+        cd mobile-app
+        call npm install >nul 2>&1
+        cd ..
+        echo    [OK] Dependencies installed
+    )
+    echo    Starting Metro Bundler...
+    start "React Native Metro" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Metro Bundler'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   React Native Metro Bundler' -ForegroundColor Magenta; Write-Host '   Mobile App Development Server' -ForegroundColor Cyan; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; npm start"
+    timeout /t 5 /nobreak >nul
+    echo [OK] Metro Bundler started
+    echo.
+    
+    echo    Building and launching Android app...
+    start "React Native Android" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Android'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   React Native Android App' -ForegroundColor Green; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; npm run android"
+    timeout /t 3 /nobreak >nul
+    echo [OK] Android app build initiated
+    echo.
+    echo    Note: iOS app requires macOS - run 'npm run ios' in mobile-app directory
+) else (
+    echo [WARNING] Mobile app directory not found - skipping mobile app startup
+    echo           Create mobile-app directory and run 'npm install' to enable
+)
 echo.
 
 echo ===============================================================
 echo                   ALL SERVICES LAUNCHED!
 echo ===============================================================
 echo.
-echo Check your Windows taskbar for 8 PowerShell windows:
+echo Check your Windows taskbar for 10 PowerShell windows:
 echo   - Camera Streaming Server (Cyan)
 echo   - Face Registration Service (Green)
 echo   - Live Floor Monitoring (Cyan) ^<-- Real-time detection
@@ -103,6 +131,8 @@ echo   - ML Fire Detection Service (MAGENTA) ^<-- AI Port 8004 + N8N!
 echo   - Camera Detection Service (Cyan)
 echo   - Web Dashboard (Blue)
 echo   - Employee Registration (Yellow)
+echo   - React Native Metro (Magenta) ^<-- Mobile app server
+echo   - React Native Android (Green) ^<-- Mobile app build
 echo.
 echo Backend: Running on AWS EC2 (http://35.180.117.85)
 echo.
@@ -130,6 +160,9 @@ echo   Floor Monitoring:   http://localhost:8003/docs (NEW!)
 echo   Laravel Backend:    http://35.180.117.85 (AWS EC2)
 echo.
 echo   Camera API List:    http://localhost:5000/api/cameras
+echo.
+echo   Mobile App:         Android emulator/device (via Metro)
+echo                      Metro Bundler: http://localhost:8081
 echo.
 echo ===============================================================
 echo.
