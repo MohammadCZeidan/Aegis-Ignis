@@ -48,9 +48,9 @@ class PresenceTracker:
             
             if employee_id in self.presence_data:
                 old_data = self.presence_data[employee_id]
-                logger.info(f"👁️ Employee {employee_id} seen again on floor {floor_id} - resetting 5min timer")
+                logger.info(f" Employee {employee_id} seen again on floor {floor_id} - resetting 5min timer")
             else:
-                logger.info(f"🆕 Employee {employee_id} detected on floor {floor_id} - starting 5min timer")
+                logger.info(f" Employee {employee_id} detected on floor {floor_id} - starting 5min timer")
                 
             self.presence_data[employee_id] = {
                 'floor_id': floor_id,
@@ -72,7 +72,7 @@ class PresenceTracker:
                         people.append(employee_id)
                     else:
                         # Remove expired presence
-                        logger.info(f"⏱️ Employee {employee_id} expired from floor {floor_id} (>5min)")
+                        logger.info(f" Employee {employee_id} expired from floor {floor_id} (>5min)")
                         del self.presence_data[employee_id]
             
             return people
@@ -90,7 +90,7 @@ class PresenceTracker:
             
             for employee_id in expired_ids:
                 floor_id = self.presence_data[employee_id]['floor_id']
-                logger.info(f"⏱️ Employee {employee_id} expired from floor {floor_id}")
+                logger.info(f" Employee {employee_id} expired from floor {floor_id}")
                 del self.presence_data[employee_id]
 
 
@@ -240,7 +240,7 @@ class CameraDetectionService:
             response.raise_for_status()
             
             result = response.json()
-            logger.warning(f"🔥 FIRE REPORTED! Event ID: {result.get('fire_event_id')}")
+            logger.warning(f" FIRE REPORTED! Event ID: {result.get('fire_event_id')}")
             self.last_fire_report = datetime.now()
         except Exception as e:
             logger.error(f"Failed to report fire: {e}")
@@ -298,7 +298,7 @@ class CameraDetectionService:
                 # Run fire detection
                 fire_result = self.detect_fire(frame)
                 if fire_result and fire_result['confidence'] >= CONFIG['fire_confidence_threshold']:
-                    logger.warning(f"🔥 Fire detected! Confidence: {fire_result['confidence']:.2%}")
+                    logger.warning(f" Fire detected! Confidence: {fire_result['confidence']:.2%}")
                     self.report_fire(fire_result)
                 
                 # Run face detection every frame
@@ -315,7 +315,7 @@ class CameraDetectionService:
                 # Log status every 100 frames
                 if frame_count % 100 == 0:
                     people_on_floor = self.presence_tracker.get_people_on_floor(CONFIG['floor_id'])
-                    logger.info(f"📊 Status: {frame_count} frames | {len(people_on_floor)} people on floor {CONFIG['floor_id']}")
+                    logger.info(f" Status: {frame_count} frames | {len(people_on_floor)} people on floor {CONFIG['floor_id']}")
                 
                 # Wait before next detection
                 time.sleep(CONFIG['detection_interval'])

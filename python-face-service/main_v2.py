@@ -60,13 +60,13 @@ except ImportError as e:
     logger.error("Install with: pip install insightface onnxruntime")
     # Load OpenCV fallback for basic detection (no embeddings)
     opencv_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    logger.warning("⚠️ Using OpenCV fallback for face DETECTION only. Face REGISTRATION disabled.")
+    logger.warning(" Using OpenCV fallback for face DETECTION only. Face REGISTRATION disabled.")
 except Exception as e:
     logger.error(f"Error loading face model: {e}")
     logger.error("InsightFace is installed but failed to load. This is likely a version incompatibility.")
     # Load OpenCV fallback for basic detection (no embeddings)
     opencv_detector = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    logger.warning("⚠️ Using OpenCV fallback for face DETECTION only. Face REGISTRATION disabled.")
+    logger.warning(" Using OpenCV fallback for face DETECTION only. Face REGISTRATION disabled.")
 
 
 class FaceDetectionResponse(BaseModel):
@@ -230,7 +230,7 @@ async def register_face(
         if not INSIGHTFACE_AVAILABLE or face_detector is None:
             raise HTTPException(
                 status_code=503,
-                detail="⚠️ Face registration is currently unavailable. InsightFace model is not loaded. Please contact system administrator to install InsightFace properly for face recognition to work."
+                detail=" Face registration is currently unavailable. InsightFace model is not loaded. Please contact system administrator to install InsightFace properly for face recognition to work."
             )
         
         # Read image
@@ -273,7 +273,7 @@ async def register_face(
                         employee_name = employee.get('name', 'Unknown')
                         raise HTTPException(
                             status_code=400, 
-                            detail=f"Hi {employee_name}! 👋 You're already registered in our system. Your employee ID is {employee.get('employee_number', employee['id'])}. No need to register again! (Match confidence: {similarity:.0%})"
+                            detail=f"Hi {employee_name}!  You're already registered in our system. Your employee ID is {employee.get('employee_number', employee['id'])}. No need to register again! (Match confidence: {similarity:.0%})"
                         )
         except HTTPException:
             raise  # Re-raise the duplicate error
@@ -299,7 +299,7 @@ async def register_face(
             'embedding': face['embedding']  # Always include - we verified InsightFace is available
         }
         
-        logger.info(f"🔄 Sending face registration to Laravel API for employee {employee_id}")
+        logger.info(f" Sending face registration to Laravel API for employee {employee_id}")
         logger.info(f"   - Confidence: {face['confidence']:.2%}")
         logger.info(f"   - Embedding size: {len(face['embedding']) if face.get('embedding') else 'NO EMBEDDING'}")
         logger.info(f"   - Floor ID: {floor_id}, Room: {room_location}")
@@ -310,11 +310,11 @@ async def register_face(
             timeout=10
         )
         
-        logger.info(f"📥 Laravel API response: Status {response.status_code}")
+        logger.info(f" Laravel API response: Status {response.status_code}")
         
         if response.status_code == 200:
             response_data = response.json()
-            logger.info(f"✅ SUCCESS: Face registered for employee {employee_id}")
+            logger.info(f" SUCCESS: Face registered for employee {employee_id}")
             logger.info(f"   - Response: {response_data}")
             return {
                 "success": True,
@@ -326,7 +326,7 @@ async def register_face(
             }
         else:
             error_text = response.text
-            logger.error(f"❌ FAILED: Laravel API returned {response.status_code}")
+            logger.error(f" FAILED: Laravel API returned {response.status_code}")
             logger.error(f"   - Error: {error_text}")
             raise HTTPException(status_code=response.status_code, detail=f"Backend error: {error_text}")
     
@@ -349,7 +349,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         if not INSIGHTFACE_AVAILABLE or face_detector is None:
             raise HTTPException(
                 status_code=503,
-                detail="⚠️ Face duplicate checking is currently unavailable. InsightFace model is not loaded. Please contact system administrator."
+                detail=" Face duplicate checking is currently unavailable. InsightFace model is not loaded. Please contact system administrator."
             )
         
         # Read image
@@ -409,7 +409,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
                                     "department": employee.get('department', 'N/A')
                                 },
                                 "similarity": similarity,
-                                "message": f"Hi {employee_name}! 👋 You're already registered in our system. Employee ID: {employee.get('employee_number', employee['id'])} | Department: {employee.get('department', 'N/A')} | Match: {similarity:.0%}"
+                                "message": f"Hi {employee_name}!  You're already registered in our system. Employee ID: {employee.get('employee_number', employee['id'])} | Department: {employee.get('department', 'N/A')} | Match: {similarity:.0%}"
                             }
                     except Exception as embedding_error:
                         logger.error(f"Error processing embedding for employee {employee.get('id')} ({employee.get('name')}): {embedding_error}")

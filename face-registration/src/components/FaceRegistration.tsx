@@ -180,7 +180,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // DEBUG: Log what we're receiving
-    console.log('📊 Face Detection Result:', {
+    console.log(' Face Detection Result:', {
       faces: result.faces_detected,
       canvasSize: { w: canvas.width, h: canvas.height },
       videoSize: { w: video.videoWidth, h: video.videoHeight },
@@ -206,7 +206,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       const scaleX = canvas.width / video.videoWidth;
       const scaleY = canvas.height / video.videoHeight;
       
-      console.log('🔧 Scale factors:', { scaleX, scaleY });
+      console.log(' Scale factors:', { scaleX, scaleY });
       
       const [x1Raw, y1Raw, x2Raw, y2Raw] = face.bbox;
       const x1 = x1Raw * scaleX;
@@ -214,7 +214,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       const x2 = x2Raw * scaleX;
       const y2 = y2Raw * scaleY;
       
-      console.log('📍 Coordinates:', { 
+      console.log(' Coordinates:', { 
         raw: [x1Raw, y1Raw, x2Raw, y2Raw],
         scaled: [x1, y1, x2, y2]
       });
@@ -462,7 +462,7 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       console.log('Face registration result:', faceResult);
       
       if (!faceResult.has_embedding) {
-        throw new Error('⚠️ Face was detected but embedding was not saved! This means duplicate detection won\'t work. Please contact support.');
+        throw new Error(' Face was detected but embedding was not saved! This means duplicate detection won\'t work. Please contact support.');
       }
       
       if (!faceResult.success) {

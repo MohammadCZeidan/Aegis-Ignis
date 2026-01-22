@@ -19,6 +19,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from services.alert_manager import AlertManager
+
 load_dotenv()
 
 # Configure structured logging
@@ -388,6 +393,8 @@ class FireDetectionService:
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         self.detection_reporter = DetectionReporter(self.session)
+        # Initialize AlertManager for WhatsApp alerts
+        self.alert_manager = AlertManager(n8n_webhook_url=os.getenv('N8N_WEBHOOK_URL'))
         
     def initialize_camera(self, camera_id: int = 0) -> bool:
         """Initialize camera feed."""
@@ -511,8 +518,31 @@ class ServiceRunner:
         """Handle a positive fire detection."""
         logger.warning(f"FIRE DETECTED! Confidence: {detection['confidence']:.2%}")
         
+        # Report to backend
         if self.fire_service.report_detection(detection, frame):
             self.fire_service.last_detection_time = time.time()
+            
+            # Send WhatsApp alert with floor occupancy
+            try:
+                # Get current floor occupancy
+                occupancy_data = self.fire_service.alert_manager.get_floor_occupancy(CONFIG['floor_id'])
+                people_detected = occupancy_data.get('people_details', [])
+                people_count = len(people_detected)
+                
+                # Send fire alert via WhatsApp and N8N
+                self.fire_service.alert_manager.send_fire_alert(
+                    floor_id=CONFIG['floor_id'],
+                    camera_id=CONFIG['camera_id'],
+                    camera_name=CONFIG['camera_name'] or f"Camera {CONFIG['camera_id']}",
+                    room=CONFIG['room_location'] or 'Unknown',
+                    people_detected=people_detected,
+                    fire_type='fire',
+                    confidence=detection['confidence'],
+                    severity='critical' if detection['confidence'] > 0.7 else 'warning'
+                )
+                logger.info(f"✅ WhatsApp alert sent for fire on Floor {CONFIG['floor_id']}")
+            except Exception as e:
+                logger.error(f"❌ Failed to send WhatsApp alert: {e}")
 
 
 # Global service instance
