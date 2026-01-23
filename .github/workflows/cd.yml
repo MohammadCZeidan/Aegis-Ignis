@@ -62,8 +62,8 @@ jobs:
             git pull origin main || git pull origin master || true
             
             echo "Verifying docker-compose.yml exists..."
-            if [ ! -f "docker-compose.yml" ]; then
-              echo "ERROR: docker-compose.yml not found in \$DEPLOY_PATH"
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "ERROR: docker-compose.prod.yml not found in \$DEPLOY_PATH"
               echo "Current directory: \$(pwd)"
               echo "Contents:"
               ls -la
@@ -156,46 +156,46 @@ jobs:
             
             echo "Pulling latest images from DockerHub..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose pull
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml pull
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose pull
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml pull
             fi
             
             echo "Stopping existing containers..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose down || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml down || true
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose down || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml down || true
             fi
             
             echo "Starting containers with latest images..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose up -d
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml up -d
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose up -d
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml up -d
             fi
             
             echo "Running migrations..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose run --rm backend php artisan migrate --force || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose run --rm backend php artisan migrate --force || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
             fi
             
             echo "Clearing and optimizing caches..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose exec backend php artisan optimize:clear || true
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose exec backend php artisan optimize || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml exec backend php artisan optimize:clear || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml exec backend php artisan optimize || true
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize:clear || true
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml exec backend php artisan optimize:clear || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml exec backend php artisan optimize || true
             fi
             
             echo "Checking container status..."
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose ps
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml ps
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml ps
             fi
             
             echo "Deployment completed successfully!"
@@ -218,9 +218,9 @@ jobs:
             echo "Verifying containers are running..."
             cd "\$DEPLOY_PATH"
             if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose ps
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml ps
             else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml ps
             fi
             echo "All containers should be in 'Up' status"
           EOF
