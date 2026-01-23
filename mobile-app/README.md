@@ -2,17 +2,27 @@
 
 React Native mobile application for the Aegis Ignis smart building security system.
 
+## Quick Setup
+
+**Having issues?** See **[SETUP-COMPLETE.md](SETUP-COMPLETE.md)** for complete setup instructions.
+
+**Quick Fix for Android:**
+1. Run `FIX-ANDROID-NOW.bat` to diagnose issues
+2. Run `SETUP-PATH.ps1` as Administrator to fix PATH
+3. Create emulator in Android Studio
+4. Run `npm run android`
+
 ## Prerequisites
 
 ### For Android Development
 - Node.js 18+
-- Java Development Kit (JDK) 17
+- Java Development Kit (JDK) 17 (included with Android Studio)
 - Android Studio
 - Android SDK (API level 23+)
 - Android Emulator or physical device
 
 ### For iOS Development
-- macOS (required for iOS development)
+- **macOS** (required - iOS development doesn't work on Windows)
 - Xcode 14+
 - CocoaPods
 - iOS Simulator or physical device
@@ -48,12 +58,26 @@ cd ..
 **Windows - Android:**
 ```bash
 # Double-click or run:
+npm run android
+# Or use the batch file:
 RUN-ANDROID.bat
 ```
 
 **macOS - iOS:**
 ```bash
+npm run ios
+# Or use the shell script:
 ./RUN-IOS.sh
+```
+
+**Run Both Platforms (macOS only):**
+```bash
+# Option 1: Run both sequentially
+npm run android
+npm run ios
+
+# Option 2: Use the helper script
+RUN-BOTH.bat  # or ./RUN-BOTH.sh on macOS
 ```
 
 ### Manual Steps
@@ -120,13 +144,28 @@ mobile-app/
 
 ### Android Issues
 
+**"adb not recognized" or "java not found":**
+- Run `FIX-ANDROID-NOW.bat` to diagnose
+- Run `SETUP-PATH.ps1` as Administrator to fix PATH automatically
+- Or manually add to PATH (see `SETUP-COMPLETE.md`)
+
+**"No emulators found":**
+- Open Android Studio → Tools → Device Manager
+- Create Device → Pixel 5 → API 33
+- Start the emulator
+
+**"JAVA_HOME not set":**
+- Run `SETUP-PATH.ps1` as Administrator
+- Or set JAVA_HOME manually: `C:\Program Files\Android\Android Studio\jbr`
+
 **Metro bundler not connecting:**
 - Check that port 8081 is not in use
 - Run `adb reverse tcp:8081 tcp:8081`
 
 **Build errors:**
-- Clean build: `cd android && ./gradlew clean`
+- Clean build: `cd android && .\gradlew.bat clean`
 - Delete `node_modules` and reinstall
+- Run `VERIFY-SETUP.bat` to check setup
 
 ### iOS Issues
 

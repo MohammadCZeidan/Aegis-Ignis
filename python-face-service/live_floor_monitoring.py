@@ -318,7 +318,7 @@ def send_people_detected_alert(floor_id: int, detected_people: List[Dict]):
         departments = [person.get('department', 'Unknown') for person in detected_people]
         
         # Create WhatsApp message
-        message = f"👥 **PEOPLE DETECTED - Floor {floor_id}**\n\n"
+        message = f"**PEOPLE DETECTED - Floor {floor_id}**\n\n"
         for i, person in enumerate(detected_people, 1):
             message += f"  {i}. {person['name']}\n"
             if person.get('employee_number'):

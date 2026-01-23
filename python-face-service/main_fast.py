@@ -1,5 +1,5 @@
 """
-ULTRA-FAST Face Recognition Service - Optimized for Speed
+Face Recognition Service - Optimized for Speed
 - Cached employee data (refreshes every 30 seconds)
 - Async database calls
 - Faster face detection
@@ -53,7 +53,7 @@ CACHE_REFRESH_SECONDS = 10  # Refresh every 10 seconds max
 cached_employees = []
 cache_timestamp = None
 
-# PRECOMPUTED EMBEDDINGS MATRIX for INSTANT comparisons
+# Precomputed embeddings matrix for fast comparisons
 cached_embeddings_matrix = None
 cached_employee_info = []
 
@@ -63,14 +63,14 @@ INSIGHTFACE_AVAILABLE = False
 
 try:
     import insightface
-    logger.info("Loading InsightFace (ULTRA-FAST settings)...")
+    logger.info("Loading InsightFace...")
     face_detector = insightface.app.FaceAnalysis(
         name='buffalo_l',
         providers=['CPUExecutionProvider']
     )
     face_detector.prepare(ctx_id=-1, det_size=(96, 96))  # ULTRA TINY = SUB-SECOND speed
     INSIGHTFACE_AVAILABLE = True
-    logger.info(" InsightFace loaded - ULTRA-FAST MODE (96x96)")
+    logger.info("InsightFace loaded (96x96)")
 except Exception as e:
     logger.error(f" InsightFace failed: {e}")
     INSIGHTFACE_AVAILABLE = False
@@ -118,7 +118,7 @@ def refresh_employee_cache():
                 cached_employees = response.json().get('data', [])
                 cache_timestamp = datetime.now()
                 
-                # PRECOMPUTE embeddings matrix for INSTANT duplicate checking
+                # Precompute embeddings matrix for duplicate checking
                 embeddings_list = []
                 employee_info_list = []
                 
@@ -336,7 +336,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         
         detected_embedding = faces[0].embedding
         
-        # INSTANT CHECK: Use cached data only (no blocking!)
+        # Use cached data only (no blocking)
         cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
         
         # Refresh in background if stale (non-blocking)
@@ -443,7 +443,7 @@ async def register_face(
         logger.info(f" Checking against {len(cached_employee_info) if cached_employee_info else 0} registered faces (cache age: {cache_age}s)")
         
         if cached_embeddings_matrix is not None and len(cached_employee_info) > 0:
-            # INSTANT: Vectorized similarity (all faces at once)
+            # Vectorized similarity (all faces at once)
             similarities = np.dot(cached_embeddings_matrix, face_embedding_array) / \
                           (np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(face_embedding_array))
             
@@ -524,7 +524,7 @@ async def register_face(
 
 @app.post("/identify-face")
 async def identify_face(file: UploadFile = File(...)):
-    """ULTRA-FAST face identification using precomputed embeddings matrix"""
+    """Face identification using precomputed embeddings matrix"""
     if not INSIGHTFACE_AVAILABLE:
         raise HTTPException(503, "Face recognition unavailable")
     
@@ -546,11 +546,11 @@ async def identify_face(file: UploadFile = File(...)):
         face = faces[0]
         face_embedding = face.embedding.tolist()
         
-        # ULTRA-FAST comparison using cached matrix
+        # Comparison using cached matrix
         if cached_embeddings_matrix is not None and len(cached_employee_ids) > 0:
             query_vec = np.array(face_embedding).reshape(1, -1)
             
-            # Vectorized cosine similarity - INSTANT for 1000s of employees
+            # Vectorized cosine similarity for large employee sets
             similarities = np.dot(cached_embeddings_matrix, query_vec.T).flatten()
             norms = np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(query_vec)
             cosine_scores = similarities / norms
@@ -603,11 +603,11 @@ async def identify_face(file: UploadFile = File(...)):
 @app.on_event("startup")
 async def startup_event():
     """Service startup with BLOCKING cache load for guaranteed readiness"""
-    logger.info(" ULTRA-FAST Face Recognition Service starting...")
+    logger.info("Face Recognition Service starting...")
     logger.info(" Loading employee cache NOW (this will take 1-2 seconds)...")
     # Load cache SYNCHRONOUSLY on startup - WAIT for it!
     await asyncio.to_thread(refresh_employee_cache)
-    logger.info(" Cache loaded - Service is READY for instant duplicate checks!")
+    logger.info("Cache loaded - Service ready for duplicate checks")
 
 
 if __name__ == "__main__":

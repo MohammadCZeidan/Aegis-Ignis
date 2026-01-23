@@ -1,12 +1,12 @@
 """
-Quick test to verify ultra-sensitive fire detection settings
+Test to verify fire detection sensitivity settings
 Tests if the detection logic can identify bright flames/lighters
 """
 import cv2
 import numpy as np
 
 print("=" * 60)
-print("   FIRE DETECTION ULTRA-SENSITIVE TEST")
+print("   FIRE DETECTION SENSITIVITY TEST")
 print("=" * 60)
 print()
 

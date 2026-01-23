@@ -33,8 +33,8 @@ timeout /t 5 /nobreak >nul
 echo [OK] Live Camera Detection Server launched
 echo.
 
-echo [3/6] Starting ULTRA-FAST Face Recognition Service (Port 8001)...
-start "Face Recognition Service" powershell -NoExit -Command "cd '%CD%\python-face-service'; $Host.UI.RawUI.WindowTitle='ULTRA-FAST Face Recognition'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   ULTRA-FAST Face Recognition Starting...' -ForegroundColor Green; Write-Host '   INSTANT Duplicate Checking + Cached Data' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' main_fast.py"
+echo [3/6] Starting Face Recognition Service (Port 8001)...
+start "Face Recognition Service" powershell -NoExit -Command "cd '%CD%\python-face-service'; $Host.UI.RawUI.WindowTitle='Face Recognition Service'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   Face Recognition Service Starting...' -ForegroundColor Green; Write-Host '   Cached Data + Duplicate Checking' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' main_fast.py"
 timeout /t 2 /nobreak >nul
 echo [OK] Face Recognition launched
 echo.
@@ -63,7 +63,7 @@ echo [OK] Fire Detection launched (Alerts + Screenshots enabled)
 echo.
 
 echo [4.6/6] Starting ML Fire Detection Service (Port 8004) - ML MODE...
-start "ML Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkMagenta'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='ML Fire Detection - AI POWERED'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML FIRE DETECTION - YOLOv8 + N8N' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   AI Features:' -ForegroundColor Cyan; Write-Host '   - YOLOv8 ML Model (with color fallback)' -ForegroundColor Green; Write-Host '   - N8N WhatsApp/Voice Alerts' -ForegroundColor Green; Write-Host '   - EC2 Backend Integration' -ForegroundColor Green; Write-Host '   - Smart Confidence Threshold' -ForegroundColor Green; Write-Host '   - People Count Detection' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML-powered fire detection ready!' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe fire-detection-service\main_ml.py"
+start "ML Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkMagenta'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='ML Fire Detection Service'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML FIRE DETECTION - YOLOv8 + N8N' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   Features:' -ForegroundColor Cyan; Write-Host '   - YOLOv8 ML Model (with color fallback)' -ForegroundColor Green; Write-Host '   - N8N WhatsApp/Voice Alerts' -ForegroundColor Green; Write-Host '   - EC2 Backend Integration' -ForegroundColor Green; Write-Host '   - Confidence Threshold' -ForegroundColor Green; Write-Host '   - People Count Detection' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML fire detection ready' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe fire-detection-service\main_ml.py"
 timeout /t 3 /nobreak >nul
 echo [OK] ML Fire Detection launched (AI + N8N Alerts enabled)
 echo.
@@ -92,6 +92,16 @@ echo.
 
 echo [9/9] Starting React Native Mobile App...
 if exist "mobile-app\package.json" (
+    echo    Setting up Android development environment...
+    cd "C:\Users\user\OneDrive\Desktop\Aegis-IgnisGit\mobile-app"
+    powershell -ExecutionPolicy Bypass -File .\SETUP-PATH.ps1 >nul 2>&1
+    if %errorlevel%==0 (
+        echo    [OK] PATH configured
+    ) else (
+        echo    [INFO] PATH setup may require Administrator privileges
+    )
+    cd "%~dp0"
+    echo.
     echo    Checking mobile app dependencies...
     if not exist "mobile-app\node_modules" (
         echo    [INFO] Installing mobile app dependencies (first time setup)...
@@ -111,7 +121,18 @@ if exist "mobile-app\package.json" (
     timeout /t 3 /nobreak >nul
     echo [OK] Android app build initiated
     echo.
-    echo    Note: iOS app requires macOS - run 'npm run ios' in mobile-app directory
+    
+    REM Check if macOS is available (for iOS development)
+    powershell -Command "if (Test-Path '/usr/bin/sw_vers' -or (Get-Command 'xcodebuild' -ErrorAction SilentlyContinue)) { exit 0 } else { exit 1 }" >nul 2>&1
+    if %errorlevel%==0 (
+        echo    Detected macOS - Starting iOS app...
+        start "React Native iOS" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native iOS'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   React Native iOS App' -ForegroundColor Blue; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run ios"
+        timeout /t 3 /nobreak >nul
+        echo [OK] iOS app build initiated
+        echo.
+    ) else (
+        echo    Note: iOS app requires macOS - run 'npm run ios' in mobile-app directory on Mac
+    )
 ) else (
     echo [WARNING] Mobile app directory not found - skipping mobile app startup
     echo           Create mobile-app directory and run 'npm install' to enable
@@ -139,7 +160,7 @@ echo.
 echo Services need 30-60 seconds to fully start...
 echo Python AI services will take longer (loading models)
 echo.
-echo FIRE DETECTION - NEW SUPER EASY MODE:
+echo FIRE DETECTION - CONFIGURATION:
 echo   - Detects with 30%% confidence (was 85%%)
 echo   - Min area: 100px (was 5,000px)
 echo   - Photos saved every 5 seconds

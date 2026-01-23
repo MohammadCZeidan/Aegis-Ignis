@@ -405,7 +405,6 @@ php artisan migrate
 ### Support & Documentation
 
 - **Architecture Details**: See [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Code Review**: See [CODE_REVIEW.md](CODE_REVIEW.md)
 - **Backend Setup**: See [backend-laravel/README_UNIFIED_BACKEND.md](backend-laravel/README_UNIFIED_BACKEND.md)
 - **Fire Detection Training**: See [ml_models/train/README.md](ml_models/train/README.md)
 

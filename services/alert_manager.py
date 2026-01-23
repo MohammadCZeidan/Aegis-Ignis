@@ -1,7 +1,7 @@
 """
 Alert Manager for fire and presence notifications via N8N and Twilio WhatsApp
 Sends fire alerts to N8N webhook for WhatsApp and voice notifications
-Direct Twilio WhatsApp integration for instant fire alerts
+Direct Twilio WhatsApp integration for fire alerts
 """
 import requests
 import logging
@@ -86,7 +86,7 @@ class AlertManager:
         people_count = len(people_detected)
         
         # Create alert message
-        fire_emoji = "" if fire_type == "fire" else "💨"
+        fire_emoji = "" if fire_type == "fire" else "[SMOKE]"
         message = (
             f"{fire_emoji} FIRE ALERT - Floor {floor_id}\n"
             f"Location: {room}\n"
@@ -124,8 +124,8 @@ class AlertManager:
         # Send to N8N webhook
         n8n_success = self._send_to_n8n(alert_data)
         
-        # Send via Twilio WhatsApp (instant notification)
-        logger.info(f"📱 Attempting to send WhatsApp alert for Floor {floor_id}")
+        # Send via Twilio WhatsApp
+        logger.info(f"Attempting to send WhatsApp alert for Floor {floor_id}")
         whatsapp_success = self._send_whatsapp_alert(
             floor_id=floor_id,
             room=room,
@@ -254,7 +254,7 @@ class AlertManager:
             current_date = datetime.now().strftime('%m/%d/%Y')
             
             # Create alert message
-            fire_emoji = "" if fire_type == "fire" else "💨"
+            fire_emoji = "" if fire_type == "fire" else "[SMOKE]"
             message_body = (
                 f"{fire_emoji} *FIRE EMERGENCY ALERT*\n\n"
                 f" *Location:* Floor {floor_id} - {room}\n"

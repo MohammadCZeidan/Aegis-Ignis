@@ -10,6 +10,10 @@
     "lint": "eslint .",
     "postinstall": "cd ios && pod install",
     "check-android": "check-android-setup.bat",
+    "verify": "VERIFY-SETUP.bat",
+    "fix-android": "FIX-ANDROID-NOW.bat",
+    "both": "RUN-BOTH-PLATFORMS.bat",
+    "ios-if-mac": "RUN-IOS-IF-MAC.bat",
     "doctor": "npx react-native doctor"
   },
   "dependencies": {
