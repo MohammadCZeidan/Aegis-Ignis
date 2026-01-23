@@ -9,14 +9,11 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci
 
-# Ensure vite and other binaries are executable (fix permission issues)
-RUN find node_modules/.bin -type f -exec chmod +x {} \;
-
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Build the application (use npx to ensure vite can execute)
+RUN npx vite build
 
 # Production stage
 FROM nginx:alpine
