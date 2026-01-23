@@ -161,9 +161,11 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           if (response.ok) {
             const result: FaceDetectionResult = await response.json();
             drawFaceDetection(result);
+          } else {
+            console.error('Face detection failed:', response.status, response.statusText);
           }
         } catch (err) {
-          // Silently handle detection errors
+          console.error('Face detection error:', err);
         }
       }, 'image/jpeg', 0.7);
     }, 300);
@@ -228,6 +230,30 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       const offsetX = faceCenterX - videoCenterX;
       const offsetY = faceCenterY - videoCenterY;
       const faceWidth = x2 - x1;
+
+      // Draw the ideal head guide box (larger box that follows the head)
+      if (result.ideal_head_position) {
+        const headBox = result.ideal_head_position;
+        const headX = headBox.x * scaleX;
+        const headY = headBox.y * scaleY;
+        const headWidth = headBox.width * scaleX;
+        const headHeight = headBox.height * scaleY;
+        
+        console.log('Drawing guide box:', { headX, headY, headWidth, headHeight, scaleX, scaleY });
+        
+        // Draw guide box in bright cyan (thicker, more visible)
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([15, 8]);
+        ctx.strokeRect(headX, headY, headWidth, headHeight);
+        ctx.setLineDash([]);
+        
+        // Also draw a semi-transparent fill for better visibility
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+        ctx.fillRect(headX, headY, headWidth, headHeight);
+      } else {
+        console.warn('No ideal_head_position in response:', result);
+      }
 
       // Draw ONE green box around detected face
       ctx.strokeStyle = '#00ff00';

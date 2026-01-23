@@ -40,18 +40,30 @@ class CleanupAlerts extends Command
             $filesDeleted = 0;
             
             foreach ($alerts as $alert) {
-                // Delete image files
+                // Delete image files from storage
                 if ($alert->image) {
-                    $imagePath = 'public/alerts/' . basename($alert->image);
-                    if (Storage::exists($imagePath)) {
-                        Storage::delete($imagePath);
-                        $filesDeleted++;
-                        $this->line("Deleted file: {$imagePath}");
+                    // Check if image is a file path (not base64)
+                    if (!str_starts_with($alert->image, 'data:image')) {
+                        $imagePath = 'public/alerts/' . basename($alert->image);
+                        if (Storage::exists($imagePath)) {
+                            Storage::delete($imagePath);
+                            $filesDeleted++;
+                            $this->line("Deleted file: {$imagePath}");
+                        }
                     }
                 }
                 
                 if ($alert->screenshot_path) {
-                    $screenshotPath = 'public/alerts/' . basename($alert->screenshot_path);
+                    // Handle both file paths and full URLs
+                    $screenshotPath = $alert->screenshot_path;
+                    
+                    // If it's a URL, extract just the filename
+                    if (str_contains($screenshotPath, '/')) {
+                        $screenshotPath = 'public/alerts/' . basename($screenshotPath);
+                    } else {
+                        $screenshotPath = 'public/alerts/' . $screenshotPath;
+                    }
+                    
                     if (Storage::exists($screenshotPath)) {
                         Storage::delete($screenshotPath);
                         $filesDeleted++;
@@ -64,7 +76,7 @@ class CleanupAlerts extends Command
                     $alert->delete();
                     $recordsDeleted++;
                 } else {
-                    // Just clear image paths
+                    // Just clear image paths and base64 data
                     $alert->image = null;
                     $alert->screenshot_path = null;
                     $alert->save();
@@ -89,7 +101,7 @@ class CleanupAlerts extends Command
             }
             
             // Also clean up fire_alerts table if it exists
-            if (!$imagesOnly) {
+            if (!$imagesOnly && DB::getSchemaBuilder()->hasTable('fire_alerts')) {
                 $fireAlertsQuery = DB::table('fire_alerts');
                 if (!$deleteAll) {
                     $fireAlertsQuery->where('created_at', '<=', now()->subDays($days));

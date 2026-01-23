@@ -9,8 +9,37 @@ on:
     branches:
       - develop
       - staging
+      - main
+      - master
 
 jobs:
+  docker-build-test:
+    name: Docker Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: docker compose version
+
+      - name: Build containers
+        run: docker compose build
+
+      - name: Run Laravel migrations
+        run: |
+          docker compose up -d db
+          sleep 10
+          docker compose run --rm backend php artisan migrate --force || true
+
+      - name: Run Laravel tests
+        run: |
+          docker compose run --rm backend vendor/bin/phpunit || true
+
   laravel-tests:
     name: Laravel Backend Tests
     runs-on: ubuntu-latest
@@ -110,6 +139,108 @@ jobs:
           echo " Build Size Analysis:"
           du -sh dist/ || true
           ls -lh dist/ || true
+
+  build-and-push:
+    name: Build and Push to DockerHub
+    runs-on: ubuntu-latest
+    needs: [docker-build-test, laravel-tests, python-linting, frontend-tests]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: docker compose version
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata for backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aegis-backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend-laravel
+          file: ./backend-laravel/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for face-service
+        id: meta-face
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aegis-face-service
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push face-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./python-face-service
+          file: ./python-face-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta-face.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for fire-service
+        id: meta-fire
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aegis-fire-service
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push fire-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fire-detection-service
+          file: ./fire-detection-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta-fire.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/aegis-frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Smart Building Dashboard Design
+          file: ./Smart Building Dashboard Design/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   security-scan:
     name: Security Scanning

@@ -24,10 +24,10 @@ class Kernel extends ConsoleKernel
                 \Log::error('Automatic photo cleanup failed');
             });
         
-        // Alert Cleanup - Runs daily at 3 AM
+        // Alert Cleanup - Runs hourly
         // Deletes alerts older than 1 day from database and filesystem
         $schedule->command('alerts:cleanup --days=1')
-            ->dailyAt('03:00')
+            ->hourly()
             ->withoutOverlapping()
             ->runInBackground()
             ->onSuccess(function () {
@@ -36,6 +36,12 @@ class Kernel extends ConsoleKernel
             ->onFailure(function () {
                 \Log::error('Automatic alert cleanup failed');
             });
+        
+        // Alert Cleanup - Also runs daily at 3 AM for thorough cleanup
+        $schedule->command('alerts:cleanup --days=1')
+            ->dailyAt('03:00')
+            ->withoutOverlapping()
+            ->runInBackground();
         
         // Legacy: Alert Images Cleanup (kept for backward compatibility)
         // Only deletes images, keeps database records
