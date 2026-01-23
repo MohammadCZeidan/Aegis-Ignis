@@ -89,7 +89,7 @@
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                      External Services (Twilio)                          │
 │                                                                          │
-│  📱 WhatsApp    📞 Voice Call    💬 SMS    ☁️ Cloud Storage            │
+│  WhatsApp    Voice Call    SMS    Cloud Storage                        │
 │                                                                          │
 │  Recipients:                                                             │
 │  • Security Team                                                         │
@@ -144,7 +144,7 @@ Fire Detected
     │   │     floor_id: 2,
     │   │     people_count: 5,
     │   │     confidence: 0.85,
-    │   │     message: "🔥 FIRE ALERT - Floor 2 (5 people present)"
+    │   │     message: "FIRE ALERT - Floor 2 (5 people present)"
     │   │   }
     │   │
     │   └─► Laravel Backend
@@ -177,16 +177,16 @@ Fire Detected
 Alert Manager
     │
     ├─► Compose Message
-    │   🔥 FIRE ALERT - Floor 2
+    │   FIRE ALERT - Floor 2
     │   Location: Conference Room
     │   Camera: Main Camera
     │   Type: FIRE
     │   Severity: CRITICAL
     │   Confidence: 85.0%
-    │   👥 People on floor: 5
-    │   ⏰ Time: 2026-01-21 14:30:25
+    │   People on floor: 5
+    │   Time: 2026-01-21 14:30:25
     │   
-    │   ⚠️ EVACUATION REQUIRED - 5 people present!
+    │   EVACUATION REQUIRED - 5 people present!
     │
     ├─► Send to N8N Webhook
     │
@@ -336,10 +336,10 @@ Production Environment:
 ---
 
 **This architecture provides:**
-- 🔥 Real-time fire detection (15 FPS)
-- 🤖 ML-powered accuracy
-- 📱 Instant WhatsApp/Voice alerts
-- 👥 People tracking and evacuation alerts
-- 🎯 Low latency (< 2 seconds from detection to alert)
-- 🔄 Automatic failover (ML → Color fallback)
-- 📊 Full dashboard integration
+- Real-time fire detection (15 FPS)
+- ML-powered accuracy
+- Instant WhatsApp/Voice alerts
+- People tracking and evacuation alerts
+- Low latency (< 2 seconds from detection to alert)
+- Automatic failover (ML → Color fallback)
+- Full dashboard integration

@@ -10,10 +10,14 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 import os
+import sys
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +32,9 @@ from datetime import datetime, timedelta
 import asyncio
 import time
 from collections import defaultdict
+
+# Import AlertManager for WhatsApp alerts
+from services.alert_manager import AlertManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,6 +56,10 @@ CACHE_REFRESH_SECONDS = 30  # Refresh employee cache every 30 seconds
 DETECTION_INTERVAL = 3  # Process frames every 3 seconds per camera
 PRESENCE_TIMEOUT = 60  # Consider person left if not seen for 60 seconds
 
+# Initialize AlertManager for WhatsApp alerts
+alert_manager = AlertManager(n8n_webhook_url=os.getenv('N8N_WEBHOOK_URL'))
+logger.info(" AlertManager initialized - WhatsApp alerts enabled")
+
 # CACHE for registered employees
 cached_employees = []
 cache_timestamp = None
@@ -62,6 +73,7 @@ active_monitoring = {}  # {camera_id: is_running}
 
 # Track detected people per floor
 floor_presence = defaultdict(dict)  # {floor_id: {employee_id: last_seen_timestamp}}
+last_whatsapp_alert = {}  # {floor_id: timestamp} - to avoid spam
 
 # Initialize face detector
 face_detector = None
@@ -76,9 +88,9 @@ try:
     )
     face_detector.prepare(ctx_id=-1, det_size=(160, 160))  # Balanced for live detection
     INSIGHTFACE_AVAILABLE = True
-    logger.info("✅ InsightFace loaded - Live monitoring ready")
+    logger.info(" InsightFace loaded - Live monitoring ready")
 except Exception as e:
-    logger.error(f"❌ InsightFace failed: {e}")
+    logger.error(f" InsightFace failed: {e}")
     INSIGHTFACE_AVAILABLE = False
 
 
@@ -122,11 +134,11 @@ def refresh_employee_cache():
             if embeddings_list:
                 cached_embeddings_matrix = np.array(embeddings_list)
                 cached_employee_info = employee_info_list
-                logger.info(f"✅ Cache loaded: {len(cached_employees)} employees, {len(embeddings_list)} with faces")
+                logger.info(f" Cache loaded: {len(cached_employees)} employees, {len(embeddings_list)} with faces")
             else:
                 cached_embeddings_matrix = None
                 cached_employee_info = []
-                logger.info(f"✅ Cache loaded: {len(cached_employees)} employees, 0 with faces")
+                logger.info(f" Cache loaded: {len(cached_employees)} employees, 0 with faces")
             
             return True
         else:
@@ -178,14 +190,14 @@ async def process_camera_feed(camera_id: int, stream_url: str, floor_id: int):
         cap = cv2.VideoCapture(stream_url)
         
         if not cap.isOpened():
-            logger.error(f"❌ Cannot open camera {camera_id}: {stream_url}")
+            logger.error(f"Cannot open camera {camera_id}: {stream_url}")
             return
         
         while active_monitoring.get(camera_id, False):
             ret, frame = cap.read()
             
             if not ret:
-                logger.warning(f"⚠️ Cannot read from camera {camera_id}")
+                logger.warning(f"Cannot read from camera {camera_id}")
                 await asyncio.sleep(1)
                 continue
             
@@ -226,10 +238,11 @@ async def process_frame(frame: np.ndarray, camera_id: int, floor_id: int):
         # Detect faces
         faces = face_detector.get(rgb_frame)
         
-        logger.info(f"📸 Camera {camera_id}: Detected {len(faces)} face(s) in frame")
+        logger.info(f" Camera {camera_id}: Detected {len(faces)} face(s) in frame")
         
         current_time = datetime.now()
         detected_employees = []
+        newly_detected = []  # Track newly detected employees for alerts
         
         for face in faces:
             # Identify face
@@ -238,7 +251,11 @@ async def process_frame(frame: np.ndarray, camera_id: int, floor_id: int):
             if identified:
                 employee_id = identified['employee_id']
                 
-                logger.info(f"✅ Identified: {identified['name']} (similarity: {identified['similarity']:.2%})")
+                logger.info(f" Identified: {identified['name']} (similarity: {identified['similarity']:.2%})")
+                
+                # Check if this is a new detection (not seen recently on this floor)
+                if employee_id not in floor_presence[floor_id]:
+                    newly_detected.append(identified)
                 
                 # Update floor presence
                 floor_presence[floor_id][employee_id] = {
@@ -253,10 +270,19 @@ async def process_frame(frame: np.ndarray, camera_id: int, floor_id: int):
                 
                 detected_employees.append(identified['name'])
             else:
-                logger.warning(f"⚠️ Unknown face detected (no match above {FACE_MATCH_THRESHOLD:.0%})")
+                logger.warning(f" Unknown face detected (no match above {FACE_MATCH_THRESHOLD:.0%})")
         
         if detected_employees:
-            logger.info(f"👤 Floor {floor_id} - Camera {camera_id}: Detected {', '.join(detected_employees)}")
+            logger.info(f" Floor {floor_id} - Camera {camera_id}: Detected {', '.join(detected_employees)}")
+        
+        # Send WhatsApp alert for newly detected people (with rate limiting)
+        if newly_detected and floor_id not in last_whatsapp_alert:
+            send_people_detected_alert(floor_id, newly_detected)
+            last_whatsapp_alert[floor_id] = current_time
+        elif newly_detected and (current_time - last_whatsapp_alert[floor_id]).seconds > 300:
+            # Send alert again if 5 minutes have passed
+            send_people_detected_alert(floor_id, newly_detected)
+            last_whatsapp_alert[floor_id] = current_time
         
         # Clean up old presence records (not seen for PRESENCE_TIMEOUT seconds)
         cleanup_old_presence()
@@ -279,6 +305,54 @@ def cleanup_old_presence():
             if current_time - last_seen > timeout_threshold:
                 logger.info(f"🚶 Employee {employee_id} left Floor {floor_id}")
                 del floor_presence[floor_id][employee_id]
+
+
+def send_people_detected_alert(floor_id: int, detected_people: List[Dict]):
+    """Send WhatsApp alert with names of newly detected people on the floor"""
+    try:
+        if not detected_people:
+            return
+        
+        # Build list of names and departments
+        names = [person['name'] for person in detected_people]
+        departments = [person.get('department', 'Unknown') for person in detected_people]
+        
+        # Create WhatsApp message
+        message = f"**PEOPLE DETECTED - Floor {floor_id}**\n\n"
+        for i, person in enumerate(detected_people, 1):
+            message += f"  {i}. {person['name']}\n"
+            if person.get('employee_number'):
+                message += f"     ID: {person['employee_number']}\n"
+            if person.get('department'):
+                message += f"     Department: {person['department']}\n"
+        
+        message += f"\n Location: Floor {floor_id}\n"
+        message += f" Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        
+        # Send via AlertManager presence update (WhatsApp friendly)
+        people_details = [
+            {
+                'name': p['name'],
+                'employee_number': p.get('employee_number', ''),
+                'department': p.get('department', 'Unknown'),
+                'similarity': p.get('similarity', 0)
+            }
+            for p in detected_people
+        ]
+        
+        success = alert_manager.send_presence_update(
+            floor_id=floor_id,
+            people_count=len(detected_people),
+            people_details=people_details
+        )
+        
+        if success:
+            logger.info(f" WhatsApp presence alert sent: {', '.join(names)} on Floor {floor_id}")
+        else:
+            logger.warning(f" Failed to send WhatsApp presence alert for Floor {floor_id}")
+            
+    except Exception as e:
+        logger.error(f"Error sending people detected alert: {e}")
 
 
 async def report_floor_presence(floor_id: int):
@@ -311,7 +385,7 @@ async def report_floor_presence(floor_id: int):
         )
         
         if response.status_code == 200:
-            logger.info(f"✅ Reported {len(presence_data)} people on Floor {floor_id}")
+            logger.info(f" Reported {len(presence_data)} people on Floor {floor_id}")
         else:
             logger.warning(f"Failed to report presence: {response.status_code}")
             
@@ -366,7 +440,7 @@ async def start_camera_monitoring(camera_id: int):
         # Start monitoring in background
         asyncio.create_task(process_camera_feed(camera_id, stream_url, floor_id))
         
-        logger.info(f"✅ Started monitoring Camera {camera_id} on Floor {floor_id}")
+        logger.info(f" Started monitoring Camera {camera_id} on Floor {floor_id}")
         
         return {
             "success": True,
@@ -387,7 +461,7 @@ async def stop_camera_monitoring(camera_id: int):
     """Stop monitoring a specific camera"""
     if camera_id in active_monitoring:
         active_monitoring[camera_id] = False
-        logger.info(f"🛑 Stopped monitoring Camera {camera_id}")
+        logger.info(f" Stopped monitoring Camera {camera_id}")
         
         return {
             "success": True,
@@ -434,7 +508,7 @@ async def start_all_cameras():
             asyncio.create_task(process_camera_feed(camera_id, stream_url, floor_id))
             started.append(camera_id)
         
-        logger.info(f"✅ Started monitoring {len(started)} cameras")
+        logger.info(f" Started monitoring {len(started)} cameras")
         
         return {
             "success": True,
@@ -532,7 +606,7 @@ async def test_add_person(
     # Report to backend
     await report_floor_presence(floor_id)
     
-    logger.info(f"🧪 TEST: Added {name} to Floor {floor_id}")
+    logger.info(f" TEST: Added {name} to Floor {floor_id}")
     
     return {
         "success": True,
@@ -549,7 +623,7 @@ async def test_clear_floor(floor_id: int):
         count = len(floor_presence[floor_id])
         floor_presence[floor_id].clear()
         await report_floor_presence(floor_id)
-        logger.info(f"🧪 TEST: Cleared {count} people from Floor {floor_id}")
+        logger.info(f" TEST: Cleared {count} people from Floor {floor_id}")
         return {"success": True, "message": f"Cleared {count} people from floor {floor_id}"}
     else:
         return {"success": True, "message": "Floor was already empty"}
@@ -583,7 +657,7 @@ async def update_camera_floor_assignments(request: Request):
             else:
                 not_found.append(camera_id)
         
-        logger.info(f"✅ Floor monitoring: Updated {len(updated)} camera assignments")
+        logger.info(f" Floor monitoring: Updated {len(updated)} camera assignments")
         
         return {
             "success": True,
@@ -593,14 +667,14 @@ async def update_camera_floor_assignments(request: Request):
         }
         
     except Exception as e:
-        logger.error(f"❌ Error updating floor assignments: {e}")
+        logger.error(f" Error updating floor assignments: {e}")
         raise HTTPException(500, str(e))
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize service on startup"""
-    logger.info("🚀 Live Floor Monitoring Service starting...")
+    logger.info(" Live Floor Monitoring Service starting...")
     
     # Load employee cache
     await asyncio.to_thread(refresh_employee_cache)
@@ -608,7 +682,7 @@ async def startup_event():
     # Start cache refresh background task
     asyncio.create_task(cache_refresh_task())
     
-    logger.info("✅ Live monitoring service ready!")
+    logger.info(" Live monitoring service ready!")
 
 
 async def cache_refresh_task():
@@ -621,7 +695,7 @@ async def cache_refresh_task():
 if __name__ == "__main__":
     import uvicorn
     
-    logger.info("✅ Starting Live Floor Monitoring Service on port 8003")
+    logger.info(" Starting Live Floor Monitoring Service on port 8003")
     
     uvicorn.run(
         app,

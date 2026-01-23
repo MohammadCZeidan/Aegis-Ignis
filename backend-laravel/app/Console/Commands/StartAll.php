@@ -25,7 +25,7 @@ class StartAll extends Command
      */
     public function handle()
     {
-        $this->info('🚀 AEGIS-IGNIS - Unified Laravel Backend');
+        $this->info('AEGIS-IGNIS - Unified Laravel Backend');
         $this->newLine();
         $this->info('This is your ONE backend - everything is managed through Laravel!');
         $this->newLine();

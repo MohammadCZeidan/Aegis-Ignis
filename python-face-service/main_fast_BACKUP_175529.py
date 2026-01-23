@@ -64,9 +64,9 @@ try:
     )
     face_detector.prepare(ctx_id=-1, det_size=(96, 96))  # ULTRA TINY = SUB-SECOND speed
     INSIGHTFACE_AVAILABLE = True
-    logger.info("✅ InsightFace loaded - ULTRA-FAST MODE (96x96)")
+    logger.info(" InsightFace loaded - ULTRA-FAST MODE (96x96)")
 except Exception as e:
-    logger.error(f"❌ InsightFace failed: {e}")
+    logger.error(f" InsightFace failed: {e}")
     INSIGHTFACE_AVAILABLE = False
 
 
@@ -121,21 +121,21 @@ def refresh_employee_cache():
             if embeddings_list:
                 cached_embeddings_matrix = np.array(embeddings_list)
                 cached_employee_info = employee_info_list
-                logger.info(f"✅ Cache refreshed: {len(cached_employees)} employees, {len(embeddings_list)} with embeddings")
+                logger.info(f" Cache refreshed: {len(cached_employees)} employees, {len(embeddings_list)} with embeddings")
             else:
                 cached_embeddings_matrix = None
                 cached_employee_info = []
-                logger.info(f"✅ Cache refreshed: {len(cached_employees)} employees, 0 with embeddings")
+                logger.info(f" Cache refreshed: {len(cached_employees)} employees, 0 with embeddings")
             
             return True
         else:
             logger.error(f"Failed to refresh cache: {response.status_code}")
             return False
     except requests.exceptions.Timeout:
-        logger.warning(f"⚠️ Backend timeout - using cached data (if available)")
+        logger.warning(f" Backend timeout - using cached data (if available)")
         return False
     except requests.exceptions.ConnectionError:
-        logger.warning(f"⚠️ Backend not reachable - using cached data (if available)")
+        logger.warning(f" Backend not reachable - using cached data (if available)")
         return False
     except Exception as e:
         logger.error(f"Cache refresh error: {e}")
@@ -164,9 +164,9 @@ def cosine_similarity(emb1: List[float], emb2: List[float]) -> float:
 @app.on_event("startup")
 async def startup_event():
     """Preload cache on startup for INSTANT first request"""
-    logger.info("🚀 Preloading employee cache on startup...")
+    logger.info(" Preloading employee cache on startup...")
     refresh_employee_cache()
-    logger.info("✅ Startup cache preload complete")
+    logger.info(" Startup cache preload complete")
 
 
 @app.get("/health")
@@ -252,7 +252,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
     """
     LIGHTNING-FAST duplicate check - Optimized for speed & minimal RAM
     """
-    start_time = time.time()  # ⏱️ START TIMER
+    start_time = time.time()  #  START TIMER
     
     if not INSIGHTFACE_AVAILABLE:
         raise HTTPException(503, "Service unavailable")
@@ -264,7 +264,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         image = image_to_numpy(contents)  # Auto-resizes large images
         faces = face_detector.get(image)
         detection_time = (time.time() - t1) * 1000
-        logger.info(f"⚡ Face detection: {detection_time:.0f}ms")
+        logger.info(f" Face detection: {detection_time:.0f}ms")
         
         # Quick validation
         if len(faces) == 0:
@@ -277,16 +277,16 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         # FAST CACHE: Use existing cache, refresh in background if old
         cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
         if cache_age > 30:  # Refresh less often for speed
-            logger.info(f"🔄 Cache stale ({cache_age}s) - Refreshing in background...")
+            logger.info(f" Cache stale ({cache_age}s) - Refreshing in background...")
             # Async refresh - don't block the response!
             asyncio.create_task(asyncio.to_thread(refresh_employee_cache))
         
         # INSTANT: Early exit if no registered faces
         if cached_embeddings_matrix is None or len(cached_employee_info) == 0:
-            logger.warning("⚠️ NO REGISTERED FACES FOUND IN CACHE!")
+            logger.warning(" NO REGISTERED FACES FOUND IN CACHE!")
             return {"success": True, "is_duplicate": False, "message": "Ready to register (no faces in system)"}
         t3 = time.time()
-        logger.info(f"🔍 Comparing against {len(cached_employee_info)} registered faces...")
+        logger.info(f" Comparing against {len(cached_employee_info)} registered faces...")
         similarities = np.dot(cached_embeddings_matrix, detected_embedding) / \
                       (np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(detected_embedding))
         
@@ -295,14 +295,14 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         comparison_time = (time.time() - t3) * 1000
         total_time = (time.time() - start_time) * 1000
         
-        logger.info(f"📊 Highest similarity: {max_similarity:.1%} with {cached_employee_info[max_idx].get('name', 'Unknown')} ({comparison_time:.1f}ms)")
-        logger.info(f"🎯 Threshold: {FACE_MATCH_THRESHOLD:.0%} - {'DUPLICATE!' if max_similarity >= FACE_MATCH_THRESHOLD else 'New face'}")
-        logger.info(f"⏱️ TOTAL TIME: {total_time:.0f}ms ({total_time/1000:.2f} seconds)")
+        logger.info(f" Highest similarity: {max_similarity:.1%} with {cached_employee_info[max_idx].get('name', 'Unknown')} ({comparison_time:.1f}ms)")
+        logger.info(f" Threshold: {FACE_MATCH_THRESHOLD:.0%} - {'DUPLICATE!' if max_similarity >= FACE_MATCH_THRESHOLD else 'New face'}")
+        logger.info(f" TOTAL TIME: {total_time:.0f}ms ({total_time/1000:.2f} seconds)")
         
         # DUPLICATE FOUND?
         if max_similarity >= FACE_MATCH_THRESHOLD:
             matched = cached_employee_info[max_idx]
-            logger.info(f"🚫 DUPLICATE DETECTED in {total_time:.0f}ms!")
+            logger.info(f" DUPLICATE DETECTED in {total_time:.0f}ms!")
             return {
                 "success": True,
                 "is_duplicate": True,
@@ -319,7 +319,7 @@ async def check_face_duplicate(file: UploadFile = File(...)):
             }
         
         # NEW FACE
-        logger.info(f"✅ NEW FACE READY in {total_time:.0f}ms")
+        logger.info(f" NEW FACE READY in {total_time:.0f}ms")
         return {
             "success": True, 
             "is_duplicate": False, 
@@ -347,7 +347,7 @@ async def register_face(
     Saves face embedding + photo to database
     """
     if not INSIGHTFACE_AVAILABLE:
-        raise HTTPException(503, "⚠️ Face recognition unavailable - InsightFace not loaded")
+        raise HTTPException(503, " Face recognition unavailable - InsightFace not loaded")
     
     try:
         # Read and detect face
@@ -395,7 +395,7 @@ async def register_face(
         _, buffer = cv2.imencode('.jpg', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         image_base64 = base64.b64encode(buffer).decode('utf-8')
         
-        # 📤 Send to Laravel backend with ALL data
+        #  Send to Laravel backend with ALL data
         logger.info(f" Registering face for employee {employee_id}")
         logger.info(f"   - Confidence: {confidence:.2%}")
         logger.info(f"   - Embedding size: {len(face_embedding)}")
@@ -430,7 +430,7 @@ async def register_face(
         logger.info(f"   - Response: {response_data}")
         
         # Refresh cache IMMEDIATELY to include new employee (prevents duplicate registration attempts)
-        logger.info("🔄 Refreshing employee cache with new face...")
+        logger.info(" Refreshing employee cache with new face...")
         refresh_employee_cache()
         logger.info(f" Cache updated - Now tracking {len(cached_employees)} employees")
         

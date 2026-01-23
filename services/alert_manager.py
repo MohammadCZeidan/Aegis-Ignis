@@ -1,7 +1,7 @@
 """
 Alert Manager for fire and presence notifications via N8N and Twilio WhatsApp
 Sends fire alerts to N8N webhook for WhatsApp and voice notifications
-Direct Twilio WhatsApp integration for instant fire alerts
+Direct Twilio WhatsApp integration for fire alerts
 """
 import requests
 import logging
@@ -47,7 +47,7 @@ class AlertManager:
         if TWILIO_AVAILABLE and self.twilio_sid and self.twilio_token:
             try:
                 self.twilio_client = TwilioClient(self.twilio_sid, self.twilio_token)
-                logger.info("✅ Twilio WhatsApp client initialized")
+                logger.info(" Twilio WhatsApp client initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize Twilio: {e}")
         
@@ -86,7 +86,7 @@ class AlertManager:
         people_count = len(people_detected)
         
         # Create alert message
-        fire_emoji = "" if fire_type == "fire" else "💨"
+        fire_emoji = "" if fire_type == "fire" else "[SMOKE]"
         message = (
             f"{fire_emoji} FIRE ALERT - Floor {floor_id}\n"
             f"Location: {room}\n"
@@ -94,8 +94,8 @@ class AlertManager:
             f"Type: {fire_type.upper()}\n"
             f"Severity: {severity.upper()}\n"
             f"Confidence: {confidence*100:.1f}%\n"
-            f"👥 People on floor: {people_count}\n"
-            f"⏰ Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            f" People on floor: {people_count}\n"
+            f" Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
         
         if people_count > 0:
@@ -124,8 +124,8 @@ class AlertManager:
         # Send to N8N webhook
         n8n_success = self._send_to_n8n(alert_data)
         
-        # Send via Twilio WhatsApp (instant notification)
-        logger.info(f"📱 Attempting to send WhatsApp alert for Floor {floor_id}")
+        # Send via Twilio WhatsApp
+        logger.info(f"Attempting to send WhatsApp alert for Floor {floor_id}")
         whatsapp_success = self._send_whatsapp_alert(
             floor_id=floor_id,
             room=room,
@@ -160,9 +160,9 @@ class AlertManager:
             True if update was sent successfully
         """
         message = (
-            f"📊 Floor {floor_id} Occupancy Update\n"
-            f"👥 Current occupancy: {people_count} people\n"
-            f"⏰ Time: {datetime.now().strftime('%H:%M:%S')}"
+            f"Floor {floor_id} Occupancy Update\n"
+            f"Current occupancy: {people_count} people\n"
+            f"Time: {datetime.now().strftime('%H:%M:%S')}"
         )
         
         alert_data = {
@@ -198,11 +198,11 @@ class AlertManager:
             True if sent successfully
         """
         message = (
-            f"🚨 CRITICAL EMERGENCY - Floor {floor_id}\n"
-            f"🔥 ACTIVE FIRE DETECTED ({fire_confidence*100:.0f}% confidence)\n"
-            f"👥 {people_count} PEOPLE NEED EVACUATION\n"
-            f"⚠️ IMMEDIATE ACTION REQUIRED!\n"
-            f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            f" CRITICAL EMERGENCY - Floor {floor_id}\n"
+            f" ACTIVE FIRE DETECTED ({fire_confidence*100:.0f}% confidence)\n"
+            f" {people_count} PEOPLE NEED EVACUATION\n"
+            f" IMMEDIATE ACTION REQUIRED!\n"
+            f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         )
         
         alert_data = {
@@ -254,22 +254,22 @@ class AlertManager:
             current_date = datetime.now().strftime('%m/%d/%Y')
             
             # Create alert message
-            fire_emoji = "🔥" if fire_type == "fire" else "💨"
+            fire_emoji = "" if fire_type == "fire" else "[SMOKE]"
             message_body = (
                 f"{fire_emoji} *FIRE EMERGENCY ALERT*\n\n"
-                f"📍 *Location:* Floor {floor_id} - {room}\n"
-                f"🔥 *Type:* {fire_type.upper()}\n"
-                f"⚠️ *Severity:* {severity.upper()}\n"
-                f"📊 *Confidence:* {confidence*100:.0f}%\n"
-                f"👥 *People Present:* {people_count}\n"
-                f"📅 *Date:* {current_date}\n"
-                f"⏰ *Time:* {current_time}\n\n"
+                f" *Location:* Floor {floor_id} - {room}\n"
+                f" *Type:* {fire_type.upper()}\n"
+                f" *Severity:* {severity.upper()}\n"
+                f" *Confidence:* {confidence*100:.0f}%\n"
+                f" *People Present:* {people_count}\n"
+                f" *Date:* {current_date}\n"
+                f" *Time:* {current_time}\n\n"
             )
             
             if people_count > 0:
-                message_body += f"🚨 *URGENT: {people_count} people need evacuation!*\n\n"
+                message_body += f" *URGENT: {people_count} people need evacuation!*\n\n"
             
-            message_body += "⚡ *Immediate action required!*"
+            message_body += "*Immediate action required!*"
             
             # Send WhatsApp message
             message = self.twilio_client.messages.create(
@@ -278,11 +278,11 @@ class AlertManager:
                 body=message_body
             )
             
-            logger.info(f"✅ WhatsApp alert sent - SID: {message.sid}")
+            logger.info(f" WhatsApp alert sent - SID: {message.sid}")
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to send WhatsApp alert: {e}")
+            logger.error(f" Failed to send WhatsApp alert: {e}")
             return False
     
     def _send_to_n8n(self, alert_data: Dict) -> bool:
@@ -308,10 +308,10 @@ class AlertManager:
             )
             
             if response.status_code in [200, 201, 202]:
-                logger.info(f"✅ N8N alert sent successfully: {alert_data['alert_type']}")
+                logger.info(f" N8N alert sent successfully: {alert_data['alert_type']}")
                 return True
             else:
-                logger.error(f"❌ N8N alert failed: {response.status_code} - {response.text}")
+                logger.error(f" N8N alert failed: {response.status_code} - {response.text}")
                 return False
                 
         except requests.exceptions.Timeout:
@@ -354,7 +354,7 @@ class AlertManager:
             response = requests.post(endpoint, json=payload, timeout=5)
             
             if response.status_code in [200, 201]:
-                logger.info("✅ Alert logged to backend")
+                logger.info(" Alert logged to backend")
                 return True
             else:
                 logger.warning(f"Backend logging failed: {response.status_code}")

@@ -12,25 +12,25 @@ import numpy as np
 def test_model_inference(model_path: str, test_image: str = None, conf_threshold: float = 0.5):
     """Test model inference on an image"""
     print("\n" + "="*80)
-    print("🧪 Testing Model Inference")
+    print(" Testing Model Inference")
     print("="*80)
     
     # Load model
     print(f"Loading model: {model_path}")
     try:
         model = YOLO(model_path)
-        print(f"✅ Model loaded successfully")
+        print(f" Model loaded successfully")
         print(f"   Classes: {model.names}")
         print(f"   Number of classes: {len(model.names)}")
     except Exception as e:
-        print(f"❌ Error loading model: {e}")
+        print(f" Error loading model: {e}")
         return False
     
     if test_image:
         print(f"\nTesting on image: {test_image}")
         
         if not Path(test_image).exists():
-            print(f"❌ Image not found: {test_image}")
+            print(f" Image not found: {test_image}")
             return False
         
         # Run inference
@@ -41,9 +41,9 @@ def test_model_inference(model_path: str, test_image: str = None, conf_threshold
             boxes = result.boxes
             
             if len(boxes) == 0:
-                print("⚠️  No detections found")
+                print("  No detections found")
             else:
-                print(f"\n✅ Found {len(boxes)} detections:")
+                print(f"\n Found {len(boxes)} detections:")
                 
                 for i, box in enumerate(boxes):
                     class_id = int(box.cls[0])
@@ -61,7 +61,7 @@ def test_model_inference(model_path: str, test_image: str = None, conf_threshold
             annotated = result.plot()
             output_path = Path(test_image).parent / f"{Path(test_image).stem}_detected.jpg"
             cv2.imwrite(str(output_path), annotated)
-            print(f"\n✅ Saved annotated image: {output_path}")
+            print(f"\n Saved annotated image: {output_path}")
     
     else:
         # Create test image
@@ -85,7 +85,7 @@ def test_model_inference(model_path: str, test_image: str = None, conf_threshold
 def validate_model(model_path: str, data_yaml: str = None):
     """Validate model on validation set"""
     print("\n" + "="*80)
-    print("📊 Validating Model Performance")
+    print(" Validating Model Performance")
     print("="*80)
     
     model = YOLO(model_path)
@@ -94,20 +94,20 @@ def validate_model(model_path: str, data_yaml: str = None):
         print(f"Running validation on dataset: {data_yaml}")
         metrics = model.val(data=data_yaml)
         
-        print(f"\n✅ Validation Results:")
+        print(f"\n Validation Results:")
         print(f"   mAP50: {metrics.box.map50:.3f}")
         print(f"   mAP50-95: {metrics.box.map:.3f}")
         print(f"   Precision: {metrics.box.mp:.3f}")
         print(f"   Recall: {metrics.box.mr:.3f}")
     else:
-        print("⚠️  No validation dataset provided")
+        print("  No validation dataset provided")
         print("   Provide --data argument to run validation")
 
 
 def benchmark_speed(model_path: str, imgsz: int = 640):
     """Benchmark model inference speed"""
     print("\n" + "="*80)
-    print("⚡ Benchmarking Inference Speed")
+    print(" Benchmarking Inference Speed")
     print("="*80)
     
     model = YOLO(model_path)
@@ -133,7 +133,7 @@ def benchmark_speed(model_path: str, imgsz: int = 640):
     avg_time = (end - start) / num_runs * 1000  # milliseconds
     fps = 1000 / avg_time
     
-    print(f"\n⚡ Performance Results:")
+    print(f"\n Performance Results:")
     print(f"   Average inference time: {avg_time:.1f} ms")
     print(f"   FPS: {fps:.1f}")
     print(f"   Image size: {imgsz}x{imgsz}")
@@ -174,13 +174,13 @@ Examples:
     
     args = parser.parse_args()
     
-    print("\n🔥"*40)
+    print("\n"*40)
     print(" FIRE DETECTION MODEL TESTING")
-    print("🔥"*40)
+    print(""*40)
     
     # Check model exists
     if not Path(args.model).exists():
-        print(f"\n❌ Model not found: {args.model}")
+        print(f"\n Model not found: {args.model}")
         print("\nAvailable models in weights/:")
         weights_dir = Path(__file__).parent.parent / 'weights'
         if weights_dir.exists():
@@ -201,7 +201,7 @@ Examples:
         benchmark_speed(args.model, args.imgsz)
     
     print("\n" + "="*80)
-    print("✅ Testing Complete!")
+    print(" Testing Complete!")
     print("="*80)
 
 

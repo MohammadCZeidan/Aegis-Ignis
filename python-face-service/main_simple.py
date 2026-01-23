@@ -28,7 +28,7 @@ app.add_middleware(
 # Load OpenCV Haar Cascade face detector
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-logger.info("✅ OpenCV Face Detector loaded successfully")
+logger.info(" OpenCV Face Detector loaded successfully")
 
 
 class FaceDetectionResponse(BaseModel):
@@ -131,5 +131,5 @@ async def detect_face(photo: UploadFile = File(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("🚀 Starting Simple Face Detection Service on port 8001...")
+    logger.info(" Starting Simple Face Detection Service on port 8001...")
     uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")

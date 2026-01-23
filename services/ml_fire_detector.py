@@ -51,25 +51,25 @@ class MLFireDetector:
         
         # Log initialization status
         if self.model is not None:
-            logger.info(f"✅ ML Fire Detector initialized with model: {model_path}")
+            logger.info(f" ML Fire Detector initialized with model: {model_path}")
             self.detection_method = "ml"
         elif use_color_fallback:
-            logger.warning("⚠️ ML model not available, using color-based fallback")
+            logger.warning(" ML model not available, using color-based fallback")
             self.detection_method = "color"
         else:
-            logger.error("❌ No detection method available!")
+            logger.error(" No detection method available!")
     
     def _load_ml_model(self, model_path: str) -> None:
         """Load YOLOv8 model from file"""
         try:
             if not os.path.exists(model_path):
                 logger.warning(f"Model file not found: {model_path}")
-                logger.info("💡 To train a model, use: ml_models/train/train_fire_model.py")
-                logger.info("💡 Or download pretrained from: https://universe.roboflow.com/")
+                logger.info(" To train a model, use: ml_models/train/train_fire_model.py")
+                logger.info(" Or download pretrained from: https://universe.roboflow.com/")
                 return
             
             self.model = YOLO(model_path)
-            logger.info(f"✅ Loaded ML model: {model_path}")
+            logger.info(f" Loaded ML model: {model_path}")
             
         except Exception as e:
             logger.error(f"Failed to load ML model: {e}")
@@ -304,9 +304,9 @@ def download_pretrained_model(save_path: str = "ml_models/weights/fire_detection
     Returns:
         True if download successful
     """
-    logger.info("📥 Downloading pretrained fire detection model...")
-    logger.info("💡 Visit https://universe.roboflow.com/ to find fire detection datasets")
-    logger.info("💡 Or train your own model using ml_models/train/train_fire_model.py")
+    logger.info(" Downloading pretrained fire detection model...")
+    logger.info(" Visit https://universe.roboflow.com/ to find fire detection datasets")
+    logger.info(" Or train your own model using ml_models/train/train_fire_model.py")
     
     # Create directory if needed
     Path(save_path).parent.mkdir(parents=True, exist_ok=True)

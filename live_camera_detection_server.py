@@ -29,7 +29,6 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-
 # Configuration
 FACE_SERVICE_URL = "http://localhost:8001"
 LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
@@ -50,9 +49,9 @@ alert_manager = AlertManager(n8n_webhook_url=N8N_WEBHOOK_URL)
 print("="*80)
 print("LIVE CAMERA DETECTION & STREAMING SERVER - ML ENABLED")
 print("="*80)
-print(f"🔥 Fire Detection Method: {ml_fire_detector.get_detection_method()}")
-print(f"🤖 ML Model Available: {ml_fire_detector.is_ml_available()}")
-print(f"📱 N8N Webhook: {'Configured ✓' if N8N_WEBHOOK_URL else 'Not configured ✗'}")
+print(f" Fire Detection Method: {ml_fire_detector.get_detection_method()}")
+print(f" ML Model Available: {ml_fire_detector.is_ml_available()}")
+print(f" N8N Webhook: {'Configured ✓' if N8N_WEBHOOK_URL else 'Not configured ✗'}")
 print("="*80)
 
 # Performance settings - MAXIMUM SPEED!
@@ -107,14 +106,14 @@ def save_screenshot(frame, camera_id, detection_type="fire"):
         success = cv2.imwrite(filepath, frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
         
         if success:
-            print(f"✅ Screenshot saved: {filepath}")
+            print(f" Screenshot saved: {filepath}")
             # Return web-accessible path
             return f"storage/alerts/{filename}"
         else:
-            print(f"❌ Failed to write image to: {filepath}")
+            print(f" Failed to write image to: {filepath}")
             return None
     except Exception as e:
-        print(f"❌ Error saving screenshot: {e}")
+        print(f" Error saving screenshot: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -174,7 +173,7 @@ def track_person(employee_name, camera_id, camera_name, floor_id, room):
         # Check if person just entered
         if employee_name not in person_last_seen:
             # Person entered
-            print(f"👤 {employee_name} ENTERED {room} (Floor {floor_id})")
+            print(f" {employee_name} ENTERED {room} (Floor {floor_id})")
             people_in_rooms[camera_id].add(employee_name)
             
             # Log entry to Laravel
@@ -357,7 +356,7 @@ class CameraStream:
                 fire_type = result['type']
                 severity = result['severity']
                 
-                print(f"🔥 FIRE DETECTED! Type: {fire_type}, Method: {result['method']}, "
+                print(f"FIRE DETECTED! Type: {fire_type}, Method: {result['method']}, "
                       f"Confidence: {confidence*100:.0f}%, Severity: {severity}")
                 
                 # Get current floor occupancy
@@ -370,10 +369,10 @@ class CameraStream:
                 last_alert = last_fire_alert_time.get(self.camera_id, 0)
                 
                 if current_time - last_alert > FIRE_ALERT_COOLDOWN:
-                    print(f"🚨 Sending FIRE ALERT via N8N")
-                    print(f"   Camera: {self.camera_id} ({self.name})")
-                    print(f"   Floor: {self.floor_id}, Room: {self.room}")
-                    print(f"   People on floor: {people_count}")
+                    print(f" Sending FIRE ALERT via N8N")
+                    print(f"  Camera: {self.camera_id} ({self.name})")
+                    print(f"  Floor: {self.floor_id}, Room: {self.room}")
+                    print(f"  People on floor: {people_count}")
                     
                     # Annotate frame with bounding box
                     annotated_frame = frame.copy()
@@ -403,7 +402,7 @@ class CameraStream:
                     
                     # Send CRITICAL evacuation alert if people present
                     if people_count > 0:
-                        print(f"⚠️  CRITICAL: {people_count} people need evacuation!")
+                        print(f"  CRITICAL: {people_count} people need evacuation!")
                         alert_manager.send_critical_evacuation_alert(
                             floor_id=self.floor_id,
                             camera_id=self.camera_id,
@@ -419,12 +418,12 @@ class CameraStream:
                     
                     if alert_success:
                         last_fire_alert_time[self.camera_id] = current_time
-                        print(f"✅ Fire alert sent successfully!")
+                        print(f" Fire alert sent successfully!")
                     else:
-                        print(f"⚠️  Alert sending had issues (check logs)")
+                        print(f"  Alert sending had issues (check logs)")
         
         except Exception as e:
-            print(f"❌ Error in fire detection: {e}")
+            print(f" Error in fire detection: {e}")
             import traceback
             traceback.print_exc()
 
@@ -616,10 +615,10 @@ def update_camera_config():
                 old_room = cameras[camera_id].room
                 cameras[camera_id].floor_id = floor_id
                 cameras[camera_id].room = location
-                print(f"  📹 Camera {camera_id}: Floor {old_floor} → {floor_id}, Room '{old_room}' → '{location}'")
-                print(f"  ℹ️  New alerts will go to floor {floor_id}, old alerts stay on floor {old_floor}")
+                print(f"   Camera {camera_id}: Floor {old_floor} → {floor_id}, Room '{old_room}' → '{location}'")
+                print(f"    New alerts will go to floor {floor_id}, old alerts stay on floor {old_floor}")
             else:
-                print(f"  ⚠ Camera {camera_id} not found in active cameras")
+                print(f"  [WARNING] Camera {camera_id} not found in active cameras")
         
         print(f"✓ Camera config updated: {len(assignments)} cameras")
         print(f"✓ Config file saved to: {CAMERA_CONFIG_FILE}")

@@ -14,11 +14,11 @@ from datetime import datetime
 def validate_dataset(data_yaml: str) -> bool:
     """Validate dataset structure and configuration"""
     print("\n" + "="*80)
-    print("📁 Validating Dataset Structure")
+    print(" Validating Dataset Structure")
     print("="*80)
     
     if not os.path.exists(data_yaml):
-        print(f"❌ Dataset YAML not found: {data_yaml}")
+        print(f" Dataset YAML not found: {data_yaml}")
         return False
     
     with open(data_yaml, 'r') as f:
@@ -27,7 +27,7 @@ def validate_dataset(data_yaml: str) -> bool:
     required_keys = ['train', 'val', 'nc', 'names']
     for key in required_keys:
         if key not in data:
-            print(f"❌ Missing required key in YAML: {key}")
+            print(f" Missing required key in YAML: {key}")
             return False
     
     # Check paths exist
@@ -37,18 +37,18 @@ def validate_dataset(data_yaml: str) -> bool:
     val_path = base_path / data['val']
     
     if not train_path.exists():
-        print(f"❌ Training images not found: {train_path}")
+        print(f" Training images not found: {train_path}")
         return False
     
     if not val_path.exists():
-        print(f"❌ Validation images not found: {val_path}")
+        print(f" Validation images not found: {val_path}")
         return False
     
     # Count images
     train_images = list(train_path.glob('*.jpg')) + list(train_path.glob('*.png'))
     val_images = list(val_path.glob('*.jpg')) + list(val_path.glob('*.png'))
     
-    print(f"✅ Dataset structure valid")
+    print(f" Dataset structure valid")
     print(f"   Training images: {len(train_images)}")
     print(f"   Validation images: {len(val_images)}")
     print(f"   Classes: {data['nc']} ({', '.join(data['names'])})")
@@ -81,13 +81,13 @@ def train_fire_detection(
         device: Device to use - '0' for GPU, 'cpu' for CPU
         export_formats: List of export formats ['onnx', 'torchscript', 'tflite']
     """
-    print("\n" + "🔥"*40)
+    print("\n" + "fire"*40)
     print(" YOLOv8 FIRE DETECTION MODEL TRAINING")
-    print("🔥"*40 + "\n")
+    print("fire"*40 + "\n")
     
     # Validate dataset
     if not validate_dataset(data_yaml):
-        print("\n❌ Dataset validation failed. Please fix the issues above.")
+        print("\n Dataset validation failed. Please fix the issues above.")
         return None
     
     # Setup directories
@@ -95,7 +95,7 @@ def train_fire_detection(
     weights_dir.mkdir(exist_ok=True)
     
     print("\n" + "="*80)
-    print("🚀 Starting Training")
+    print(" Starting Training")
     print("="*80)
     print(f"Base Model: {model}")
     print(f"Epochs: {epochs}")
@@ -109,8 +109,8 @@ def train_fire_detection(
     try:
         yolo_model = YOLO(model)
     except Exception as e:
-        print(f"❌ Error loading base model: {e}")
-        print("💡 Will download YOLOv8 model automatically...")
+        print(f" Error loading base model: {e}")
+        print("Will download YOLOv8 model automatically...")
         yolo_model = YOLO(model)
     
     # Train with comprehensive settings
@@ -143,7 +143,7 @@ def train_fire_detection(
     )
     
     print("\n" + "="*80)
-    print("✅ Training Completed!")
+    print(" Training Completed!")
     print("="*80)
     
     # Get best model path
@@ -157,19 +157,19 @@ def train_fire_detection(
     if best_model_path.exists():
         shutil.copy(best_model_path, final_model_path)
         shutil.copy(best_model_path, weights_dir / 'fire_detection.pt')
-        print(f"✅ Best model saved to: {final_model_path}")
-        print(f"✅ Current model updated: {weights_dir / 'fire_detection.pt'}")
+        print(f" Best model saved to: {final_model_path}")
+        print(f" Current model updated: {weights_dir / 'fire_detection.pt'}")
     
     # Validation metrics
     print("\n" + "="*80)
-    print("📊 Final Metrics")
+    print(" Final Metrics")
     print("="*80)
     print(f"Training directory: {results.save_dir}")
     
     # Export models
     if export_formats:
         print("\n" + "="*80)
-        print("📦 Exporting Models")
+        print(" Exporting Models")
         print("="*80)
         
         best_model = YOLO(best_model_path)
@@ -178,21 +178,21 @@ def train_fire_detection(
             try:
                 print(f"Exporting to {fmt.upper()}...")
                 export_path = best_model.export(format=fmt)
-                print(f"✅ {fmt.upper()} export successful: {export_path}")
+                print(f" {fmt.upper()} export successful: {export_path}")
             except Exception as e:
-                print(f"❌ {fmt.upper()} export failed: {e}")
+                print(f" {fmt.upper()} export failed: {e}")
     
     # Test inference
     print("\n" + "="*80)
-    print("🧪 Testing Model Inference")
+    print(" Testing Model Inference")
     print("="*80)
     
     test_model = YOLO(final_model_path)
-    print(f"✅ Model loaded successfully")
-    print(f"✅ Classes: {test_model.names}")
+    print(f" Model loaded successfully")
+    print(f" Classes: {test_model.names}")
     
     print("\n" + "="*80)
-    print("🎉 All Done!")
+    print(" All Done!")
     print("="*80)
     print("\nNext steps:")
     print("1. Check training results in:", results.save_dir)
@@ -246,7 +246,7 @@ Examples:
     
     args = parser.parse_args()
     
-    print("\n🔥 Fire Detection Model Training")
+    print("\n Fire Detection Model Training")
     print(f"Dataset: {args.data}")
     print(f"Model: {args.model}")
     print(f"Device: {args.device}\n")

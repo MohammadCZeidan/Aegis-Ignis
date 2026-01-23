@@ -65,7 +65,7 @@ class EmployeeService
             if ($faceData && isset($faceData['embedding'])) {
                 $faceEmbedding = $faceData['embedding'];
                 
-                // ✅ CHECK FOR DUPLICATE FACE BEFORE REGISTERING
+                // CHECK FOR DUPLICATE FACE BEFORE REGISTERING
                 $duplicate = $this->faceRecognitionService->checkForDuplicate($faceEmbedding);
                 if ($duplicate) {
                     // Delete the uploaded photo since we won't use it

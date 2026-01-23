@@ -1,12 +1,12 @@
 """
-Quick test to verify ultra-sensitive fire detection settings
+Test to verify fire detection sensitivity settings
 Tests if the detection logic can identify bright flames/lighters
 """
 import cv2
 import numpy as np
 
 print("=" * 60)
-print("   FIRE DETECTION ULTRA-SENSITIVE TEST")
+print("   FIRE DETECTION SENSITIVITY TEST")
 print("=" * 60)
 print()
 
@@ -65,7 +65,7 @@ print()
 # Check if it meets minimum area threshold
 MIN_AREA = 30  # New ultra-sensitive threshold
 if total_pixels >= MIN_AREA:
-    print(f"✅ DETECTION SUCCESSFUL!")
+    print(f"[OK] DETECTION SUCCESSFUL!")
     print(f"   Detected {total_pixels} pixels (threshold: {MIN_AREA})")
     
     # Calculate confidence
@@ -76,9 +76,9 @@ if total_pixels >= MIN_AREA:
     print(f"   Area: {percentage:.2f}% of frame")
     print(f"   Confidence: {confidence * 100:.1f}%")
     print()
-    print("🔥 FIRE DETECTED! System would trigger alert.")
+    print("FIRE DETECTED! System would trigger alert.")
 else:
-    print(f"❌ NOT DETECTED")
+    print(f"[ERROR] NOT DETECTED")
     print(f"   Only {total_pixels} pixels (need {MIN_AREA})")
 
 print()

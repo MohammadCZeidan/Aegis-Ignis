@@ -1,10 +1,10 @@
-# 🎯 AEGIS-IGNIS - Unified Laravel Backend
+# AEGIS-IGNIS - Unified Laravel Backend
 
 **One Backend to Rule Them All!**
 
 This is your **single, unified Laravel backend**. Everything is managed and controlled through Laravel, making it easy to develop, deploy, and maintain.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────┐
@@ -33,27 +33,27 @@ This is your **single, unified Laravel backend**. Everything is managed and cont
 └──────────────┘  └──────────────┘
 ```
 
-## ✨ Key Features
+## Key Features
 
-### 🎯 Single Entry Point
+### Single Entry Point
 - **Everything starts from Laravel**
 - One command to start all services
 - Unified configuration
 - Centralized logging
 
-### 🧹 Clean Architecture
+### Clean Architecture
 - **Form Requests** - All validation in separate files
 - **Services** - All business logic in service classes
 - **Controllers** - Thin controllers, just HTTP handling
 - **Commands** - Service management through Artisan
 
-### 🚀 Easy Management
+### Easy Management
 - Start/stop services with Laravel commands
 - Check service status
 - Health monitoring
 - Automatic dependency management
 
-## 📦 Installation
+## Installation
 
 1. **Install PHP dependencies:**
 ```bash
@@ -73,7 +73,7 @@ php artisan migrate
 php artisan db:seed
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option 1: Start Everything (Recommended)
 ```bash
@@ -105,7 +105,7 @@ php artisan services:start --face
 php artisan services:start --fire
 ```
 
-## 🎮 Laravel Artisan Commands
+## Laravel Artisan Commands
 
 ### Service Management
 ```bash
@@ -228,7 +228,7 @@ All endpoints are under `/api/v1/`:
 - `GET /health` - Full health check
 - `GET /ping` - Quick health check
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables (.env)
 ```env
@@ -252,7 +252,7 @@ MICROSERVICE_TIMEOUT=10
 MICROSERVICE_MAX_RETRIES=3
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run tests
@@ -262,7 +262,7 @@ php artisan test
 php artisan test --filter AuthTest
 ```
 
-## 📝 Code Style
+## Code Style
 
 This project follows Laravel best practices:
 - **PSR-12** coding standards
@@ -271,7 +271,7 @@ This project follows Laravel best practices:
 - **Thin Controllers** for HTTP handling
 - **Dependency Injection** throughout
 
-## 🚨 Troubleshooting
+## Troubleshooting
 
 ### Services won't start
 ```bash
@@ -296,13 +296,13 @@ php artisan tinker
 php artisan migrate:fresh --seed
 ```
 
-## 📚 Documentation
+## Documentation
 
 - [Laravel Documentation](https://laravel.com/docs)
 - [API Documentation](./README.md)
 - [Architecture Guide](../BACKEND_ARCHITECTURE.md)
 
-## 🎯 Why This Architecture?
+## Why This Architecture?
 
 1. **Single Source of Truth** - Laravel is the main backend
 2. **Clean Code** - Separation of concerns (Requests, Services, Controllers)
@@ -310,7 +310,7 @@ php artisan migrate:fresh --seed
 4. **Scalable** - Can scale services independently
 5. **Maintainable** - Clear structure, easy to understand
 
-## 🤝 Contributing
+## Contributing
 
 1. Follow PSR-12 coding standards
 2. Use Form Requests for validation
@@ -320,5 +320,5 @@ php artisan migrate:fresh --seed
 
 ---
 
-**Remember: This is ONE backend. Everything is managed through Laravel!** 🚀
+**Remember: This is ONE backend. Everything is managed through Laravel!**
 
