@@ -127,32 +127,60 @@ jobs:
             echo "Setting DockerHub username environment variable..."
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
             
-            echo "Checking disk space..."
+            echo "Checking disk space before cleanup..."
             df -h
             
-            echo "Cleaning up Docker resources to free space..."
+            echo "Stopping all running containers to free space..."
             if [ "$USE_SUDO" = "true" ]; then
-              # Remove stopped containers
+              sudo docker compose -f docker-compose.prod.yml down || true
+              sudo docker stop \$(sudo docker ps -aq) 2>/dev/null || true
+            else
+              docker compose -f docker-compose.prod.yml down || true
+              docker stop \$(docker ps -aq) 2>/dev/null || true
+            fi
+            
+            echo "Aggressively cleaning up Docker resources..."
+            if [ "$USE_SUDO" = "true" ]; then
+              # Remove all stopped containers
               sudo docker container prune -f || true
-              # Remove unused images
+              # Remove ALL unused images (including tagged ones)
               sudo docker image prune -a -f || true
               # Remove unused volumes
               sudo docker volume prune -f || true
               # Remove build cache
               sudo docker builder prune -a -f || true
+              # Remove dangling images
+              sudo docker image prune -f || true
+              # System prune (everything unused)
+              sudo docker system prune -a -f --volumes || true
             else
-              # Remove stopped containers
+              # Remove all stopped containers
               docker container prune -f || true
-              # Remove unused images
+              # Remove ALL unused images (including tagged ones)
               docker image prune -a -f || true
               # Remove unused volumes
               docker volume prune -f || true
               # Remove build cache
               docker builder prune -a -f || true
+              # Remove dangling images
+              docker image prune -f || true
+              # System prune (everything unused)
+              docker system prune -a -f --volumes || true
             fi
             
-            echo "Disk space after cleanup..."
+            echo "Checking disk space after cleanup..."
             df -h
+            
+            # Check if we have enough space (at least 1GB free)
+            AVAILABLE_SPACE=\$(df / | tail -1 | awk '{print \$4}')
+            if [ "\$AVAILABLE_SPACE" -lt 1048576 ]; then
+              echo "WARNING: Low disk space (\$AVAILABLE_SPACE KB available). Attempting additional cleanup..."
+              # Remove old logs
+              sudo journalctl --vacuum-time=7d 2>/dev/null || true
+              sudo apt-get clean 2>/dev/null || true
+              sudo apt-get autoremove -y 2>/dev/null || true
+              df -h
+            fi
             
             echo "Pulling latest images from DockerHub..."
             if [ "$USE_SUDO" = "true" ]; then
