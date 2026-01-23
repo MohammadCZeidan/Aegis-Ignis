@@ -41,36 +41,40 @@ Edit `src/config/api.ts` and update the `HOST` variable:
 
 ## Running the App
 
-### Option 1: Using Scripts (Easiest)
+### Option 1: Quick Scripts (Easiest)
 
-**Android (Windows):**
+**Windows - Android:**
 ```bash
-start-android.bat
+# Double-click or run:
+RUN-ANDROID.bat
 ```
 
-**iOS (macOS):**
+**macOS - iOS:**
 ```bash
-./start-ios.sh
+chmod +x RUN-IOS.sh
+./RUN-IOS.sh
 ```
 
 ### Option 2: Manual Steps
 
-**Step 1: Start Metro Bundler**
+**IMPORTANT:** You need TWO terminal windows!
+
+**Terminal 1 - Metro Bundler:**
 ```bash
+cd mobile-app
 npm start
 ```
+Wait until you see: `info Dev server ready`
 
-**Step 2: Run on Device (in new terminal)**
-
-**Android:**
+**Terminal 2 - Run App (NEW WINDOW):**
 ```bash
-npm run android
+cd mobile-app
+npm run android    # For Android
+# OR
+npm run ios        # For iOS (macOS only)
 ```
 
-**iOS:**
-```bash
-npm run ios
-```
+**Note:** If Metro terminal doesn't accept input, that's normal! Just open a NEW terminal window for step 2.
 
 ## First Run Checklist
 

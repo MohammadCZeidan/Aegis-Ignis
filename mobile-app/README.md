@@ -43,39 +43,55 @@ cd ..
 
 ## Running the App
 
-### Android
+### Quick Start (Easiest)
 
-1. **Start Metro bundler:**
+**Windows - Android:**
 ```bash
+# Double-click or run:
+RUN-ANDROID.bat
+```
+
+**macOS - iOS:**
+```bash
+./RUN-IOS.sh
+```
+
+### Manual Steps
+
+#### Step 1: Start Metro Bundler (Terminal 1)
+
+```bash
+cd mobile-app
 npm start
 ```
 
-2. **In a new terminal, run Android:**
+Wait until you see: `info Dev server ready`
+
+#### Step 2: Run on Device (Terminal 2 - NEW WINDOW)
+
+**For Android:**
 ```bash
+cd mobile-app
 npm run android
 ```
 
-Or use Android Studio:
-- Open `android/` folder in Android Studio
-- Wait for Gradle sync
-- Click Run button
-
-### iOS
-
-1. **Start Metro bundler:**
+**For iOS (macOS only):**
 ```bash
-npm start
-```
-
-2. **In a new terminal, run iOS:**
-```bash
+cd mobile-app
 npm run ios
 ```
 
-Or use Xcode:
-- Open `ios/AegisIgnis.xcworkspace` in Xcode
+### Alternative: Using IDEs
+
+**Android Studio:**
+- Open `mobile-app/android/` folder in Android Studio
+- Wait for Gradle sync
+- Click Run button (green play icon)
+
+**Xcode (iOS):**
+- Open `mobile-app/ios/AegisIgnis.xcworkspace` in Xcode
 - Select a simulator or device
-- Click Run button
+- Click Run button (play icon)
 
 ## Project Structure
 
