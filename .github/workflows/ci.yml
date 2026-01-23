@@ -28,20 +28,32 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose version
 
+      - name: Clean up Docker resources before build
+        run: |
+          echo "Checking disk space before cleanup..."
+          df -h
+          echo "Cleaning up Docker to free space..."
+          docker system prune -af || true
+          docker builder prune -af || true
+          docker volume prune -f || true
+          docker image prune -af || true
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Build containers (backend and frontend only)
         run: |
-          echo "Building backend, frontend, and db containers..."
-          docker compose build --no-cache backend frontend db
+          echo "Building backend, frontend, and db containers using production compose file..."
+          docker compose -f docker-compose.prod.yml build backend frontend db
 
       - name: Run Laravel migrations
         run: |
-          docker compose up -d db
+          docker compose -f docker-compose.prod.yml up -d db
           sleep 10
-          docker compose run --rm backend php artisan migrate --force || true
+          docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
 
       - name: Run Laravel tests
         run: |
-          docker compose run --rm backend vendor/bin/phpunit || true
+          docker compose -f docker-compose.prod.yml run --rm backend vendor/bin/phpunit || true
 
   laravel-tests:
     name: Laravel Backend Tests
