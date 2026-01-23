@@ -109,18 +109,15 @@ jobs:
             fi
             
             # Check if we need to use sudo for docker commands
+            USE_SUDO=false
             if ! docker ps &>/dev/null 2>&1; then
               echo "Note: Using sudo for docker commands"
-              DOCKER_CMD="sudo docker"
-              COMPOSE_CMD="sudo docker compose"
-            else
-              DOCKER_CMD="docker"
-              COMPOSE_CMD="docker compose"
+              USE_SUDO=true
             fi
             
             echo "Logging in to DockerHub..."
             # Docker login - sudo requires the full command to be in the sudo context
-            if [ "$DOCKER_CMD" = "sudo docker" ]; then
+            if [ "$USE_SUDO" = "true" ]; then
               # For sudo, pipe the token directly to the sudo docker login command
               echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo sh -c "docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin"
             else
@@ -131,23 +128,48 @@ jobs:
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
             
             echo "Pulling latest images from DockerHub..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD pull
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose pull
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose pull
+            fi
             
             echo "Stopping existing containers..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD down || true
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose down || true
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose down || true
+            fi
             
             echo "Starting containers with latest images..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD up -d
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose up -d
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose up -d
+            fi
             
             echo "Running migrations..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD run --rm backend php artisan migrate --force || true
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose run --rm backend php artisan migrate --force || true
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose run --rm backend php artisan migrate --force || true
+            fi
             
             echo "Clearing and optimizing caches..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD exec backend php artisan optimize:clear || true
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD exec backend php artisan optimize || true
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose exec backend php artisan optimize:clear || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose exec backend php artisan optimize || true
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize:clear || true
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize || true
+            fi
             
             echo "Checking container status..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD ps
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose ps
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            fi
             
             echo "Deployment completed successfully!"
           EOF
@@ -161,15 +183,18 @@ jobs:
             fi
             
             # Check if we need to use sudo for docker commands
-            if ! docker ps &>/dev/null; then
-              COMPOSE_CMD="sudo docker compose"
-            else
-              COMPOSE_CMD="docker compose"
+            USE_SUDO=false
+            if ! docker ps &>/dev/null 2>&1; then
+              USE_SUDO=true
             fi
             
             echo "Verifying containers are running..."
             cd "\$DEPLOY_PATH"
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD ps
+            if [ "$USE_SUDO" = "true" ]; then
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose ps
+            else
+              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            fi
             echo "All containers should be in 'Up' status"
           EOF
 
