@@ -203,6 +203,14 @@ jobs:
               DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml up -d
             fi
             
+            echo "Waiting for PostgreSQL to be ready..."
+            if [ "$USE_SUDO" = "true" ]; then
+              timeout 60 bash -c 'until sudo docker compose -f docker-compose.prod.yml exec -T db pg_isready -U postgres; do sleep 2; done' || true
+            else
+              timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U postgres; do sleep 2; done' || true
+            fi
+            sleep 5
+            
             echo "Running migrations..."
             if [ "$USE_SUDO" = "true" ]; then
               DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
