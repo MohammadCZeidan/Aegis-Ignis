@@ -70,30 +70,78 @@ jobs:
               exit 1
             fi
             
+            echo "Checking if Docker is installed..."
+            if ! command -v docker &>/dev/null; then
+              echo "Docker not found! Installing Docker..."
+              # Update package index
+              sudo apt-get update -y
+              # Install prerequisites
+              sudo apt-get install -y ca-certificates curl gnupg lsb-release
+              # Add Docker's official GPG key
+              sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              # Set up Docker repository
+              echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              # Install Docker Engine and Docker Compose plugin
+              sudo apt-get update -y
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              # Start and enable Docker
+              sudo systemctl start docker
+              sudo systemctl enable docker
+              # Add current user to docker group (if not root)
+              if [ "\$USER" != "root" ]; then
+                sudo usermod -aG docker \$USER
+              fi
+              echo "Docker installed successfully!"
+            else
+              echo "Docker is already installed."
+              docker --version
+            fi
+            
+            echo "Checking if Docker Compose is available..."
+            if ! docker compose version &>/dev/null; then
+              echo "Docker Compose plugin not found! Installing..."
+              sudo apt-get update -y
+              sudo apt-get install -y docker-compose-plugin
+            else
+              echo "Docker Compose is available."
+              docker compose version
+            fi
+            
+            # Check if we need to use sudo for docker commands
+            if ! docker ps &>/dev/null; then
+              echo "Note: Using sudo for docker commands (user may need to be added to docker group)"
+              DOCKER_CMD="sudo docker"
+              COMPOSE_CMD="sudo docker compose"
+            else
+              DOCKER_CMD="docker"
+              COMPOSE_CMD="docker compose"
+            fi
+            
             echo "Logging in to DockerHub..."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | $DOCKER_CMD login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
             echo "Setting DockerHub username environment variable..."
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
             
             echo "Pulling latest images from DockerHub..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose pull
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD pull
             
             echo "Stopping existing containers..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose down || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD down || true
             
             echo "Starting containers with latest images..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose up -d
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD up -d
             
             echo "Running migrations..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose run --rm backend php artisan migrate --force || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD run --rm backend php artisan migrate --force || true
             
             echo "Clearing and optimizing caches..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize:clear || true
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD exec backend php artisan optimize:clear || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD exec backend php artisan optimize || true
             
             echo "Checking container status..."
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD ps
             
             echo "Deployment completed successfully!"
           EOF
@@ -106,16 +154,23 @@ jobs:
               DEPLOY_PATH="\$HOME/Aegis-IgnisGit"
             fi
             
+            # Check if we need to use sudo for docker commands
+            if ! docker ps &>/dev/null; then
+              COMPOSE_CMD="sudo docker compose"
+            else
+              COMPOSE_CMD="docker compose"
+            fi
+            
             echo "Verifying containers are running..."
             cd "\$DEPLOY_PATH"
-            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $COMPOSE_CMD ps
             echo "All containers should be in 'Up' status"
           EOF
 
       - name: Deployment Summary
         if: success()
         run: |
-          echo "✅ Deployment completed successfully!"
+          echo " Deployment completed successfully!"
           echo "- Images pulled from DockerHub"
           echo "- Containers started with docker compose"
           echo "- Migrations executed"
@@ -124,4 +179,4 @@ jobs:
       - name: Notify on Failure
         if: failure()
         run: |
-          echo "❌ Deployment failed! Please check the logs above."
+          echo " Deployment failed! Please check the logs above."
