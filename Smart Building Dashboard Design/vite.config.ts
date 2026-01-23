@@ -47,6 +47,12 @@ export default defineConfig({
           }
         },
       },
+      // Ensure React is not externalized
+      external: [],
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
     },
     chunkSizeWarningLimit: 1000,
   },
