@@ -15,9 +15,11 @@ COPY fire-detection-service/requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copy services directory first (must be before fire-detection-service to avoid conflicts)
+COPY services/ ./services/
+
 # Copy application code
 COPY fire-detection-service/ .
-COPY services ./services
 
 EXPOSE 8002
 
