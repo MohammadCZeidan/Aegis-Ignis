@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
-    react(),
+    react({
+      // Ensure React is properly transformed
+      jsxRuntime: 'automatic',
+    }),
     tailwindcss(),
   ],
   server: {
@@ -18,6 +21,8 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+    // Ensure React is resolved from node_modules
+    dedupe: ['react', 'react-dom'],
   },
   build: {
     minify: 'esbuild', // Faster than terser
@@ -26,7 +31,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunking strategy
+          // Vendor chunking strategy - ensure React is always bundled
           if (id.includes('node_modules')) {
             if (id.includes('react') || id.includes('react-dom')) {
               return 'vendor-react';
@@ -47,7 +52,7 @@ export default defineConfig({
           }
         },
       },
-      // Ensure React is not externalized
+      // Ensure React is not externalized - must be bundled
       external: [],
     },
     commonjsOptions: {
@@ -60,9 +65,12 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
+      'react/jsx-runtime',
       'react-router-dom',
       '@tanstack/react-query',
       'lucide-react'
     ],
+    // Force pre-bundling of React
+    force: true,
   },
 })
