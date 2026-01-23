@@ -51,6 +51,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/alerts/by-floor/{floorId}', [App\Http\Controllers\Api\AlertController::class, 'byFloor']);
     Route::post('/alerts/{id}/acknowledge', [App\Http\Controllers\Api\AlertController::class, 'acknowledge']);
     Route::post('/alerts/cleanup-images', [App\Http\Controllers\Api\AlertController::class, 'cleanupImages']);
+    Route::post('/alerts/cleanup', [App\Http\Controllers\Api\AlertController::class, 'cleanupAlerts']);
     
     // Presence tracking endpoints (public for camera services)
     Route::post('/presence/entry', [App\Http\Controllers\Api\PresenceController::class, 'logEntry']);

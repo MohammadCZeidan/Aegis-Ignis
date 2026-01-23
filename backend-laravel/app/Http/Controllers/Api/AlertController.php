@@ -93,4 +93,58 @@ class AlertController extends Controller
         $statusCode = $result['success'] ? 200 : 500;
         return response()->json($result, $statusCode);
     }
+
+    public function cleanupAlerts(Request $request): JsonResponse
+    {
+        try {
+            $days = $request->input('days', 1);
+            $deleteAll = $request->boolean('all', false);
+            $imagesOnly = $request->boolean('images-only', false);
+            
+            $command = 'alerts:cleanup';
+            $options = [];
+            
+            if ($deleteAll) {
+                $options[] = '--all';
+            } else {
+                $options[] = "--days={$days}";
+            }
+            
+            if ($imagesOnly) {
+                $options[] = '--images-only';
+            }
+            
+            $fullCommand = $command . ' ' . implode(' ', $options);
+            
+            \Artisan::call($command, [
+                '--days' => $deleteAll ? null : $days,
+                '--all' => $deleteAll,
+                '--images-only' => $imagesOnly
+            ]);
+            
+            $output = \Artisan::output();
+            
+            \Log::info('Manual alert cleanup triggered', [
+                'command' => $fullCommand,
+                'output' => $output
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Alert cleanup completed successfully',
+                'command' => $fullCommand,
+                'output' => $output
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Manual alert cleanup failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'error' => 'Cleanup failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
