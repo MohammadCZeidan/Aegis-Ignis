@@ -127,6 +127,33 @@ jobs:
             echo "Setting DockerHub username environment variable..."
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
             
+            echo "Checking disk space..."
+            df -h
+            
+            echo "Cleaning up Docker resources to free space..."
+            if [ "$USE_SUDO" = "true" ]; then
+              # Remove stopped containers
+              sudo docker container prune -f || true
+              # Remove unused images
+              sudo docker image prune -a -f || true
+              # Remove unused volumes
+              sudo docker volume prune -f || true
+              # Remove build cache
+              sudo docker builder prune -a -f || true
+            else
+              # Remove stopped containers
+              docker container prune -f || true
+              # Remove unused images
+              docker image prune -a -f || true
+              # Remove unused volumes
+              docker volume prune -f || true
+              # Remove build cache
+              docker builder prune -a -f || true
+            fi
+            
+            echo "Disk space after cleanup..."
+            df -h
+            
             echo "Pulling latest images from DockerHub..."
             if [ "$USE_SUDO" = "true" ]; then
               DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose pull
