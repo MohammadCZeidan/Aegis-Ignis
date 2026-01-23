@@ -1,0 +1,96 @@
+name: CD - Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Containers from DockerHub
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: docker compose version
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 to known hosts
+        run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy containers from DockerHub
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+            
+            echo "Navigating to application directory..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}
+            
+            echo "Pulling latest code..."
+            git pull origin main || git pull origin master
+            
+            echo "Logging in to DockerHub..."
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            
+            echo "Setting DockerHub username environment variable..."
+            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            
+            echo "Pulling latest images from DockerHub..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose pull
+            
+            echo "Stopping existing containers..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose down || true
+            
+            echo "Starting containers with latest images..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose up -d
+            
+            echo "Running migrations..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose run --rm backend php artisan migrate --force || true
+            
+            echo "Clearing and optimizing caches..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize:clear || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose exec backend php artisan optimize || true
+            
+            echo "Checking container status..."
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            
+            echo "Deployment completed successfully!"
+          EOF
+
+      - name: Verify Deployment
+        run: |
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            echo "Verifying containers are running..."
+            cd ${{ secrets.DEPLOY_PATH || '$HOME/Aegis-IgnisGit' }}
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose ps
+            echo "All containers should be in 'Up' status"
+          EOF
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "- Images pulled from DockerHub"
+          echo "- Containers started with docker compose"
+          echo "- Migrations executed"
+          echo "- Caches optimized"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Please check the logs above."

@@ -36,10 +36,10 @@ jobs:
       - name: Verify Confirmation
         run: |
           if [ "${{ github.event.inputs.confirm }}" != "RESET" ]; then
-            echo "❌ Confirmation failed. You must type 'RESET' to proceed."
+            echo " Confirmation failed. You must type 'RESET' to proceed."
             exit 1
           fi
-          echo "✅ Confirmation verified. Proceeding with reset..."
+          echo " Confirmation verified. Proceeding with reset..."
 
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
@@ -54,25 +54,25 @@ jobs:
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
             
-            echo "🚨 Starting Laravel Application Reset..."
+            echo " Starting Laravel Application Reset..."
             cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}/backend-laravel
             
             # Stop services
-            echo "🛑 Stopping services..."
+            echo " Stopping services..."
             sudo systemctl stop php8.2-fpm || true
             sudo systemctl stop nginx || true
             
             # Database Reset
             if [ "${{ github.event.inputs.delete_database }}" == "true" ]; then
-              echo "🗄️ Resetting database..."
+              echo " Resetting database..."
               php artisan db:wipe --force
               php artisan migrate:fresh --force
-              echo "✅ Database reset complete"
+              echo " Database reset complete"
             fi
             
             # Storage Files Deletion
             if [ "${{ github.event.inputs.delete_storage }}" == "true" ]; then
-              echo "📁 Deleting storage files..."
+              echo " Deleting storage files..."
               
               # Delete alerts
               rm -rf storage/app/public/alerts/*
@@ -94,7 +94,7 @@ jobs:
               rm -rf storage/logs/*.log
               echo "  - Logs deleted"
               
-              echo "✅ Storage files deleted"
+              echo " Storage files deleted"
             fi
             
             # Cache Clearing
@@ -113,18 +113,18 @@ jobs:
               # Delete compiled views
               rm -rf storage/framework/views/*
               
-              echo "✅ Caches cleared"
+              echo " Caches cleared"
             fi
             
             # Sessions Deletion
             if [ "${{ github.event.inputs.delete_sessions }}" == "true" ]; then
-              echo "🔐 Deleting sessions..."
+              echo " Deleting sessions..."
               rm -rf storage/framework/sessions/*
-              echo "✅ Sessions deleted"
+              echo " Sessions deleted"
             fi
             
             # Recreate necessary directories
-            echo "📂 Recreating directory structure..."
+            echo " Recreating directory structure..."
             mkdir -p storage/app/public/alerts
             mkdir -p storage/app/public/detections
             mkdir -p storage/app/public/employees
@@ -135,54 +135,54 @@ jobs:
             mkdir -p storage/logs
             
             # Set proper permissions
-            echo "🔑 Setting permissions..."
+            echo " Setting permissions..."
             sudo chown -R www-data:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             
             # Recreate storage link
-            echo "🔗 Recreating storage link..."
+            echo " Recreating storage link..."
             php artisan storage:link --force
             
             # Restart services
-            echo "🔄 Starting services..."
+            echo " Starting services..."
             sudo systemctl start php8.2-fpm
             sudo systemctl start nginx
             
-            echo "✅ Laravel Application Reset Complete!"
+            echo " Laravel Application Reset Complete!"
           EOF
 
       - name: Reset Fire Detection Data
         if: github.event.inputs.delete_storage == 'true'
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "🔥 Resetting Fire Detection Service data..."
+            echo " Resetting Fire Detection Service data..."
             cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
             
             # Clear any temporary files or detection caches
             rm -rf fire-detection-service/__pycache__/*
             rm -rf fire-detection-service/*.pyc
             
-            echo "✅ Fire Detection data reset"
+            echo " Fire Detection data reset"
           EOF
 
       - name: Reset Face Recognition Data
         if: github.event.inputs.delete_storage == 'true'
         run: |
           ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            echo "👤 Resetting Face Recognition Service data..."
+            echo " Resetting Face Recognition Service data..."
             cd ${{ secrets.APP_PATH || '/var/www/aegis-ignis' }}
             
             # Clear cache
             rm -rf python-face-service/__pycache__/*
             rm -rf python-face-service/*.pyc
             
-            echo "✅ Face Recognition data reset"
+            echo " Face Recognition data reset"
           EOF
 
       - name: Reset Summary
         if: success()
         run: |
-          echo "🎉 Reset Complete!"
+          echo " Reset Complete!"
           echo ""
           echo "Reset Actions Performed:"
           echo "- Database Reset: ${{ github.event.inputs.delete_database }}"
@@ -190,9 +190,9 @@ jobs:
           echo "- Caches Cleared: ${{ github.event.inputs.delete_cache }}"
           echo "- Sessions Deleted: ${{ github.event.inputs.delete_sessions }}"
           echo ""
-          echo "⚠️ Your Laravel application has been reset to a clean state."
+          echo " Your Laravel application has been reset to a clean state."
 
       - name: Notify on Failure
         if: failure()
         run: |
-          echo "❌ Reset failed! Please check the logs above."
+          echo " Reset failed! Please check the logs above."
