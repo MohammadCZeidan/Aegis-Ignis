@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
@@ -12,8 +12,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application (use npx to ensure vite can execute)
-RUN npx vite build
+# Build the application using node directly (bypasses permission issues)
+RUN node node_modules/vite/bin/vite.js build
 
 # Production stage
 FROM nginx:alpine
