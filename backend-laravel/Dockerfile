@@ -20,8 +20,14 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy application files
 COPY . .
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Clear cached service providers before install
+RUN rm -rf bootstrap/cache/*.php 2>/dev/null || true
+
+# Install dependencies without running scripts (avoids package:discover with dev deps)
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Manually run package discovery (will gracefully skip missing dev packages)
+RUN php artisan package:discover --ansi || true
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \

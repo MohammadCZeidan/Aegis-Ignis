@@ -57,8 +57,8 @@ services:
   fire-service:
     image: ${DOCKERHUB_USERNAME:-yourusername}/aegis-fire-service:latest
     build:
-      context: ./fire-detection-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./fire-detection-service/Dockerfile
     container_name: aegis-fire-service
     ports:
       - "8002:8002"
