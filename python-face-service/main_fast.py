@@ -1,24 +1,23 @@
 """
-Face Recognition Service - Optimized for Speed
-- Cached employee data (refreshes every 30 seconds)
-- Async database calls
-- Faster face detection
-- Immediate response
+Face Recognition Service
+Provides face detection, identification, and duplicate checking using InsightFace.
+Uses cached employee embeddings for efficient similarity comparisons.
 """
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 import os
+import threading
+from typing import Optional, List, Dict, Tuple
+from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
 import numpy as np
 import cv2
 from PIL import Image
@@ -27,14 +26,13 @@ import logging
 import requests
 import json
 import base64
-from datetime import datetime, timedelta
 import asyncio
 import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Fast Face Recognition Service", version="3.0.0")
+app = FastAPI(title="Face Recognition Service", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,20 +42,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration
-LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000').rstrip('/api/v1')
-FACE_MATCH_THRESHOLD = 0.40  # 40% threshold - catches more duplicates
-CACHE_REFRESH_SECONDS = 10  # Refresh every 10 seconds max
 
-# CACHE for registered employees
-cached_employees = []
-cache_timestamp = None
+class ServiceConfig:
+    """Configuration constants for the face recognition service."""
+    LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000').rstrip('/api/v1')
+    
+    # Face matching threshold (0.0-1.0)
+    # Lower values catch more potential duplicates but may have false positives
+    FACE_MATCH_THRESHOLD = 0.40
+    
+    # Cache refresh interval in seconds
+    CACHE_REFRESH_SECONDS = 10
+    
+    # Image processing settings
+    IMAGE_MAX_SIZE = 320  # Maximum dimension for face detection (balance speed/accuracy)
+    DETECTION_SIZE = (96, 96)  # InsightFace detection size (smaller = faster)
+    EXPECTED_EMBEDDING_DIM = 512  # InsightFace embedding dimension
+    
+    # Cache refresh settings
+    CACHE_STALE_THRESHOLD = 60  # Seconds before cache is considered stale
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2  # Seconds between retries
+    REQUEST_TIMEOUT = 10  # Seconds
 
-# Precomputed embeddings matrix for fast comparisons
-cached_embeddings_matrix = None
-cached_employee_info = []
 
-# Initialize face detector
+class ThreadSafeCache:
+    """Thread-safe cache for employee embeddings."""
+    
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._employees: List[Dict] = []
+        self._embeddings_matrix: Optional[np.ndarray] = None
+        self._employee_info: List[Dict] = []
+        self._timestamp: Optional[datetime] = None
+    
+    def update(self, employees: List[Dict], embeddings_matrix: Optional[np.ndarray], 
+               employee_info: List[Dict]) -> None:
+        """Update cache with new data."""
+        with self._lock:
+            self._employees = employees
+            self._embeddings_matrix = embeddings_matrix
+            self._employee_info = employee_info
+            self._timestamp = datetime.now()
+    
+    def get_employees(self) -> List[Dict]:
+        """Get cached employees list."""
+        with self._lock:
+            return self._employees.copy()
+    
+    def get_embeddings_matrix(self) -> Optional[np.ndarray]:
+        """Get cached embeddings matrix."""
+        with self._lock:
+            return self._embeddings_matrix.copy() if self._embeddings_matrix is not None else None
+    
+    def get_employee_info(self) -> List[Dict]:
+        """Get cached employee info list."""
+        with self._lock:
+            return self._employee_info.copy()
+    
+    def get_timestamp(self) -> Optional[datetime]:
+        """Get cache timestamp."""
+        with self._lock:
+            return self._timestamp
+    
+    def is_stale(self) -> bool:
+        """Check if cache is stale."""
+        with self._lock:
+            if not self._timestamp:
+                return True
+            age = (datetime.now() - self._timestamp).total_seconds()
+            return age > ServiceConfig.CACHE_REFRESH_SECONDS
+    
+    def get_cache_age(self) -> int:
+        """Get cache age in seconds."""
+        with self._lock:
+            if not self._timestamp:
+                return 999
+            return int((datetime.now() - self._timestamp).total_seconds())
+
+
+# Global thread-safe cache
+cache = ThreadSafeCache()
+
+# Face detector instance
 face_detector = None
 INSIGHTFACE_AVAILABLE = False
 
@@ -68,15 +135,16 @@ try:
         name='buffalo_l',
         providers=['CPUExecutionProvider']
     )
-    face_detector.prepare(ctx_id=-1, det_size=(96, 96))  # ULTRA TINY = SUB-SECOND speed
+    face_detector.prepare(ctx_id=-1, det_size=ServiceConfig.DETECTION_SIZE)
     INSIGHTFACE_AVAILABLE = True
-    logger.info("InsightFace loaded (96x96)")
+    logger.info(f"InsightFace loaded (detection size: {ServiceConfig.DETECTION_SIZE})")
 except Exception as e:
-    logger.error(f" InsightFace failed: {e}")
+    logger.error(f"InsightFace initialization failed: {e}")
     INSIGHTFACE_AVAILABLE = False
 
 
 class FaceDetectionResponse(BaseModel):
+    """Response model for face detection."""
     success: bool
     faces_detected: int
     faces: List[dict]
@@ -84,214 +152,315 @@ class FaceDetectionResponse(BaseModel):
     message: str = ""
 
 
-def image_to_numpy(file_bytes: bytes, max_size: int = 320) -> np.ndarray:
-    """Convert image bytes to numpy array - ULTRA-OPTIMIZED for speed"""
+def image_to_numpy(file_bytes: bytes, max_size: int = None) -> np.ndarray:
+    """
+    Convert image bytes to numpy array.
+    
+    Args:
+        file_bytes: Image file bytes
+        max_size: Maximum dimension (defaults to ServiceConfig.IMAGE_MAX_SIZE)
+        
+    Returns:
+        Numpy array of image in RGB format
+    """
+    if max_size is None:
+        max_size = ServiceConfig.IMAGE_MAX_SIZE
+        
     image = Image.open(BytesIO(file_bytes))
     
-    # AGGRESSIVE resize for maximum speed (320px is enough for face detection)
     if image.width > max_size or image.height > max_size:
-        image.thumbnail((max_size, max_size), Image.BILINEAR)  # BILINEAR is faster than LANCZOS
+        image.thumbnail((max_size, max_size), Image.BILINEAR)
     
     image = image.convert('RGB')
     return np.array(image)
 
 
-def refresh_employee_cache():
-    """Refresh cached employee data from backend AND precompute embeddings matrix with retry logic"""
-    global cached_employees, cache_timestamp, cached_embeddings_matrix, cached_employee_info
+def calculate_similarity_matrix(
+    embeddings_matrix: np.ndarray, 
+    query_embedding: np.ndarray
+) -> np.ndarray:
+    """
+    Calculate cosine similarity between query embedding and all cached embeddings.
     
-    max_retries = 3
-    retry_delay = 2  # seconds
+    Args:
+        embeddings_matrix: Matrix of cached embeddings (N x D)
+        query_embedding: Query embedding vector (D,)
+        
+    Returns:
+        Array of similarity scores (N,)
+    """
+    norms = np.linalg.norm(embeddings_matrix, axis=1) * np.linalg.norm(query_embedding)
+    similarities = np.dot(embeddings_matrix, query_embedding) / norms
+    return similarities
+
+
+def find_best_match(
+    embeddings_matrix: np.ndarray,
+    employee_info: List[Dict],
+    query_embedding: np.ndarray,
+    threshold: float
+) -> Tuple[Optional[Dict], float]:
+    """
+    Find best matching employee for given embedding.
     
-    for attempt in range(1, max_retries + 1):
+    Args:
+        embeddings_matrix: Matrix of cached embeddings
+        employee_info: List of employee info dicts
+        query_embedding: Query embedding to match
+        threshold: Minimum similarity threshold
+        
+    Returns:
+        Tuple of (matched_employee_dict, similarity_score) or (None, score) if no match
+    """
+    if len(embeddings_matrix) == 0 or len(employee_info) == 0:
+        return None, 0.0
+    
+    similarities = calculate_similarity_matrix(embeddings_matrix, query_embedding)
+    max_idx = np.argmax(similarities)
+    max_similarity = float(similarities[max_idx])
+    
+    if max_similarity >= threshold:
+        return employee_info[max_idx], max_similarity
+    
+    return None, max_similarity
+
+
+def parse_employee_embeddings(employees: List[Dict]) -> Tuple[List[np.ndarray], List[Dict]]:
+    """
+    Parse and validate employee embeddings from API response.
+    
+    Args:
+        employees: List of employee dicts from API
+        
+    Returns:
+        Tuple of (embeddings_list, valid_employee_info_list)
+    """
+    embeddings_list = []
+    employee_info_list = []
+    
+    for employee in employees:
+        if not employee.get('face_embedding'):
+            continue
+        
         try:
-            start_load = time.time()
-            logger.info(f" Fetching employee faces from Laravel... (Attempt {attempt}/{max_retries})")
+            stored_embedding = json.loads(employee['face_embedding'])
+            
+            if len(stored_embedding) != ServiceConfig.EXPECTED_EMBEDDING_DIM:
+                logger.warning(
+                    f"Skipping employee {employee.get('id')} - "
+                    f"Invalid embedding dimension: {len(stored_embedding)} "
+                    f"(expected {ServiceConfig.EXPECTED_EMBEDDING_DIM})"
+                )
+                continue
+            
+            embeddings_list.append(stored_embedding)
+            employee_info_list.append(employee)
+        except Exception as e:
+            logger.warning(f"Skipping employee {employee.get('id')} - Invalid embedding: {e}")
+            continue
+    
+    return embeddings_list, employee_info_list
+
+
+def fetch_employees_from_api() -> Optional[List[Dict]]:
+    """
+    Fetch employees from Laravel API with retry logic.
+    
+    Returns:
+        List of employee dicts or None if failed
+    """
+    for attempt in range(1, ServiceConfig.MAX_RETRIES + 1):
+        try:
+            start_time = time.time()
+            logger.info(f"Fetching employees from API (attempt {attempt}/{ServiceConfig.MAX_RETRIES})")
+            
             response = requests.get(
-                f"{LARAVEL_API_URL}/api/v1/employees/registered-faces",
-                timeout=10
+                f"{ServiceConfig.LARAVEL_API_URL}/api/v1/employees/registered-faces",
+                timeout=ServiceConfig.REQUEST_TIMEOUT
             )
-            fetch_time = (time.time() - start_load) * 1000
-            logger.info(f" Laravel response in {fetch_time:.0f}ms")
+            
+            fetch_time = (time.time() - start_time) * 1000
+            logger.info(f"API response received in {fetch_time:.0f}ms")
             
             if response.status_code == 200:
-                cached_employees = response.json().get('data', [])
-                cache_timestamp = datetime.now()
-                
-                # Precompute embeddings matrix for duplicate checking
-                embeddings_list = []
-                employee_info_list = []
-                
-                EXPECTED_EMBEDDING_DIM = 512  # InsightFace embedding dimension
-                
-                for employee in cached_employees:
-                    if not employee.get('face_embedding'):
-                        continue
-                    
-                    try:
-                        stored_embedding = json.loads(employee['face_embedding'])
-                        
-                        # CRITICAL: Validate embedding dimension to prevent shape mismatch
-                        if len(stored_embedding) != EXPECTED_EMBEDDING_DIM:
-                            logger.warning(f" Skipping employee {employee.get('id')} - Invalid embedding dimension: {len(stored_embedding)} (expected {EXPECTED_EMBEDDING_DIM})")
-                            continue
-                        
-                        embeddings_list.append(stored_embedding)
-                        employee_info_list.append(employee)
-                    except Exception as e:
-                        logger.warning(f" Skipping employee {employee.get('id')} - Invalid embedding: {e}")
-                        continue
-                
-                # Store as NumPy matrix for VECTORIZED operations
-                if embeddings_list:
-                    cached_embeddings_matrix = np.array(embeddings_list)
-                    cached_employee_info = employee_info_list
-                    total_time = (time.time() - start_load) * 1000
-                    logger.info(f"Cache loaded in {total_time:.0f}ms: {len(cached_employees)} employees, {len(embeddings_list)} with embeddings")
-                else:
-                    cached_embeddings_matrix = None
-                    cached_employee_info = []
-                    total_time = (time.time() - start_load) * 1000
-                    logger.info(f" Cache loaded in {total_time:.0f}ms: {len(cached_employees)} employees, 0 with embeddings")
-                
-                return True
+                return response.json().get('data', [])
             else:
-                logger.error(f"Failed to refresh cache: {response.status_code}")
-                if attempt < max_retries:
-                    logger.warning(f" Retrying in {retry_delay} seconds...")
-                    time.sleep(retry_delay)
+                logger.error(f"API returned status {response.status_code}")
+                if attempt < ServiceConfig.MAX_RETRIES:
+                    logger.warning(f"Retrying in {ServiceConfig.RETRY_DELAY} seconds...")
+                    time.sleep(ServiceConfig.RETRY_DELAY)
                     continue
-                return False
+                return None
                 
         except requests.exceptions.Timeout:
-            logger.error(f" LARAVEL TIMEOUT (>10s)! Check if backend is running on {LARAVEL_API_URL}")
-            if attempt < max_retries:
-                logger.warning(f"⏳ Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
+            logger.error(f"API request timeout (>{ServiceConfig.REQUEST_TIMEOUT}s)")
+            if attempt < ServiceConfig.MAX_RETRIES:
+                logger.warning(f"Retrying in {ServiceConfig.RETRY_DELAY} seconds...")
+                time.sleep(ServiceConfig.RETRY_DELAY)
                 continue
-            return False
+            return None
             
         except requests.exceptions.ConnectionError:
-            logger.error(f" LARAVEL NOT REACHABLE! Is it running on {LARAVEL_API_URL}?")
-            if attempt < max_retries:
-                logger.warning(f" Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
+            logger.error(f"Cannot connect to API at {ServiceConfig.LARAVEL_API_URL}")
+            if attempt < ServiceConfig.MAX_RETRIES:
+                logger.warning(f"Retrying in {ServiceConfig.RETRY_DELAY} seconds...")
+                time.sleep(ServiceConfig.RETRY_DELAY)
                 continue
-            return False
+            return None
             
         except Exception as e:
-            logger.error(f"Cache refresh error: {e}")
-            if attempt < max_retries:
-                logger.warning(f" Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
+            logger.error(f"Error fetching employees: {e}")
+            if attempt < ServiceConfig.MAX_RETRIES:
+                logger.warning(f"Retrying in {ServiceConfig.RETRY_DELAY} seconds...")
+                time.sleep(ServiceConfig.RETRY_DELAY)
                 continue
-            return False
+            return None
     
-    logger.error(f" Failed to refresh cache after {max_retries} attempts")
-    return False
+    logger.error(f"Failed to fetch employees after {ServiceConfig.MAX_RETRIES} attempts")
+    return None
 
 
-def get_cached_employees():
-    """Get cached employees, refresh if needed"""
-    global cache_timestamp
+def refresh_employee_cache() -> bool:
+    """
+    Refresh cached employee data from backend and precompute embeddings matrix.
     
-    # Refresh if cache is empty or old
-    if not cached_employees or not cache_timestamp or \
-       (datetime.now() - cache_timestamp).seconds > CACHE_REFRESH_SECONDS:
+    Returns:
+        True if successful, False otherwise
+    """
+    employees = fetch_employees_from_api()
+    if employees is None:
+        return False
+    
+    start_time = time.time()
+    embeddings_list, employee_info_list = parse_employee_embeddings(employees)
+    
+    if embeddings_list:
+        embeddings_matrix = np.array(embeddings_list)
+        cache.update(employees, embeddings_matrix, employee_info_list)
+        total_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"Cache updated in {total_time:.0f}ms: "
+            f"{len(employees)} employees, {len(embeddings_list)} with embeddings"
+        )
+    else:
+        cache.update(employees, None, [])
+        total_time = (time.time() - start_time) * 1000
+        logger.info(
+            f"Cache updated in {total_time:.0f}ms: "
+            f"{len(employees)} employees, 0 with embeddings"
+        )
+    
+    return True
+
+
+def ensure_cache_fresh() -> None:
+    """Refresh cache if it's stale or empty."""
+    if cache.is_stale():
         refresh_employee_cache()
+
+
+def calculate_scale_factors(original_size: Tuple[int, int], resized_size: Tuple[int, int]) -> Tuple[float, float]:
+    """Calculate scale factors for coordinate conversion."""
+    scale_x = original_size[0] / resized_size[0]
+    scale_y = original_size[1] / resized_size[1]
+    return scale_x, scale_y
+
+
+def scale_bbox(bbox: np.ndarray, scale_x: float, scale_y: float) -> List[int]:
+    """Scale bounding box coordinates from resized to original image size."""
+    return [
+        int(bbox[0] * scale_x),
+        int(bbox[1] * scale_y),
+        int(bbox[2] * scale_x),
+        int(bbox[3] * scale_y)
+    ]
+
+
+def calculate_head_guide_box(face_bbox: np.ndarray, image_size: Tuple[int, int]) -> Dict[str, int]:
+    """
+    Calculate head guide box from face bounding box.
     
-    return cached_employees
-
-
-def cosine_similarity(emb1: List[float], emb2: List[float]) -> float:
-    """Fast cosine similarity calculation"""
-    vec1 = np.array(emb1)
-    vec2 = np.array(emb2)
-    return float(np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+    Args:
+        face_bbox: Face bounding box [x1, y1, x2, y2]
+        image_size: (width, height) of resized image
+        
+    Returns:
+        Dict with x, y, width, height of head guide box
+    """
+    x1, y1, x2, y2 = face_bbox.astype(int)
+    face_width = x2 - x1
+    face_height = y2 - y1
+    resized_width, resized_height = image_size
+    
+    head_top = max(0, int(y1 - face_height * 0.5))
+    head_left = max(0, int(x1 - face_width * 0.25))
+    head_right = min(resized_width, int(x2 + face_width * 0.25))
+    head_bottom = min(resized_height, int(y2 + face_height * 0.15))
+    
+    return {
+        'x': head_left,
+        'y': head_top,
+        'width': head_right - head_left,
+        'height': head_bottom - head_top
+    }
 
 
 @app.get("/health")
 async def health():
+    """Health check endpoint."""
+    embeddings_matrix = cache.get_embeddings_matrix()
     return {
         "status": "healthy",
-        "model": "InsightFace-Fast" if INSIGHTFACE_AVAILABLE else "None",
-        "cache_size": len(cached_employees),
-        "precomputed_embeddings": cached_embeddings_matrix.shape[0] if cached_embeddings_matrix is not None else 0,
-        "cache_age_seconds": (datetime.now() - cache_timestamp).seconds if cache_timestamp else None
+        "model": "InsightFace" if INSIGHTFACE_AVAILABLE else "None",
+        "cache_size": len(cache.get_employees()),
+        "precomputed_embeddings": embeddings_matrix.shape[0] if embeddings_matrix is not None else 0,
+        "cache_age_seconds": cache.get_cache_age()
     }
 
 
 @app.post("/detect-faces", response_model=FaceDetectionResponse)
 async def detect_faces(file: UploadFile = File(...)):
-    """FAST face detection with HEAD TRACKING guide box"""
+    """Detect faces in image and return bounding boxes with head guide position."""
     if not INSIGHTFACE_AVAILABLE:
         raise HTTPException(503, "Face detection unavailable")
     
     try:
         contents = await file.read()
         
-        # Get ORIGINAL image size before resizing
-        from PIL import Image as PILImage
-        from io import BytesIO
-        pil_img = PILImage.open(BytesIO(contents))
-        original_width, original_height = pil_img.size
+        pil_img = Image.open(BytesIO(contents))
+        original_size = pil_img.size
         
-        # Now resize for fast detection
         image = image_to_numpy(contents)
-        resized_height, resized_width = image.shape[:2]
+        resized_size = (image.shape[1], image.shape[0])
         
-        # Calculate scale factors to convert back to original size
-        scale_x = original_width / resized_width
-        scale_y = original_height / resized_height
+        scale_x, scale_y = calculate_scale_factors(original_size, resized_size)
         
-        logger.info(f" Image: {original_width}x{original_height} → {resized_width}x{resized_height}, scale: {scale_x:.2f}x, {scale_y:.2f}y")
+        logger.info(
+            f"Image: {original_size[0]}x{original_size[1]} → "
+            f"{resized_size[0]}x{resized_size[1]}, "
+            f"scale: {scale_x:.2f}x, {scale_y:.2f}y"
+        )
         
-        # Fast detection on SMALL image
         faces = face_detector.get(image)
-        
         results = []
         head_guide_box = None
         
         if len(faces) > 0:
-            # Use first/best face for head guide
             face = faces[0]
-            
-            # Get face bounding box [x1, y1, x2, y2] - these are on SMALL image
             face_bbox = face.bbox.astype(int)
-            x1, y1, x2, y2 = face_bbox
             
-            # Calculate HEAD area on small image
-            face_width = x2 - x1
-            face_height = y2 - y1
-            
-            # Expand upward MORE to include top of head/hair (50% height above)
-            head_top = max(0, int(y1 - face_height * 0.5))
-            
-            # Expand sides (25% width on each side)
-            head_left = max(0, int(x1 - face_width * 0.25))
-            head_right = min(resized_width, int(x2 + face_width * 0.25))
-            
-            # Bottom extends slightly below chin
-            head_bottom = min(resized_height, int(y2 + face_height * 0.15))
-            
-            # SCALE coordinates back to ORIGINAL image size
+            head_box_resized = calculate_head_guide_box(face_bbox, resized_size)
             head_guide_box = {
-                'x': int(head_left * scale_x),
-                'y': int(head_top * scale_y),
-                'width': int((head_right - head_left) * scale_x),
-                'height': int((head_bottom - head_top) * scale_y)
+                'x': int(head_box_resized['x'] * scale_x),
+                'y': int(head_box_resized['y'] * scale_y),
+                'width': int(head_box_resized['width'] * scale_x),
+                'height': int(head_box_resized['height'] * scale_y)
             }
             
-            # Add all detected faces with SCALED coordinates
             for f in faces:
-                bbox_small = f.bbox.astype(int)
+                bbox_resized = f.bbox.astype(int)
                 results.append({
-                    'bbox': [
-                        int(bbox_small[0] * scale_x),
-                        int(bbox_small[1] * scale_y),
-                        int(bbox_small[2] * scale_x),
-                        int(bbox_small[3] * scale_y)
-                    ],
+                    'bbox': scale_bbox(bbox_resized, scale_x, scale_y),
                     'confidence': float(f.det_score),
                     'embedding': f.embedding.tolist()
                 })
@@ -301,67 +470,69 @@ async def detect_faces(file: UploadFile = File(...)):
             faces_detected=len(results),
             faces=results,
             ideal_head_position=head_guide_box,
-            message=f"{len(results)} face(s)"
+            message=f"{len(results)} face(s) detected"
         )
     
     except Exception as e:
-        logger.error(f"Detection error: {e}")
+        logger.error(f"Face detection error: {e}")
         raise HTTPException(500, str(e))
 
 
 @app.post("/check-face-duplicate")
 async def check_face_duplicate(file: UploadFile = File(...)):
-    """
-    LIGHTNING-FAST duplicate check - Optimized for speed & minimal RAM
-    """
-    start_time = time.time()  #  START TIMER
-    
+    """Check if face already exists in registered employees."""
     if not INSIGHTFACE_AVAILABLE:
         raise HTTPException(503, "Service unavailable")
     
+    start_time = time.time()
+    
     try:
-        # FAST: Read and detect face (no unnecessary logging)
-        t1 = time.time()
         contents = await file.read()
-        image = image_to_numpy(contents)  # Auto-resizes large images
+        image = image_to_numpy(contents)
         faces = face_detector.get(image)
-        detection_time = (time.time() - t1) * 1000
-        logger.info(f" Face detection: {detection_time:.0f}ms")
         
-        # Quick validation
+        detection_time = (time.time() - start_time) * 1000
+        logger.info(f"Face detection completed in {detection_time:.0f}ms")
+        
         if len(faces) == 0:
             raise HTTPException(400, "No face detected - Move closer")
         if len(faces) > 1:
-            raise HTTPException(400, "Multiple faces - Only one person")
+            raise HTTPException(400, "Multiple faces detected - Only one person allowed")
         
         detected_embedding = faces[0].embedding
         
-        # Use cached data only (no blocking)
-        cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
-        
-        # Refresh in background if stale (non-blocking)
-        if cache_age > 60:
-            logger.info(f" Cache stale ({cache_age}s) - Refreshing in background...")
+        cache_age = cache.get_cache_age()
+        if cache_age > ServiceConfig.CACHE_STALE_THRESHOLD:
+            logger.info(f"Cache stale ({cache_age}s) - Refreshing in background...")
             asyncio.create_task(asyncio.to_thread(refresh_employee_cache))
         
-        # Use whatever is in cache NOW
-        if cached_embeddings_matrix is None or len(cached_employee_info) == 0:
-            logger.warning(" NO REGISTERED FACES IN CACHE (still loading or empty)")
-            return {"success": True, "is_duplicate": False, "message": "Cache loading... try again"}
-        t3 = time.time()
-        logger.info(f" Comparing against {len(cached_employee_info)} registered faces...")
-        similarities = np.dot(cached_embeddings_matrix, detected_embedding) / \
-                      (np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(detected_embedding))
+        embeddings_matrix = cache.get_embeddings_matrix()
+        employee_info = cache.get_employee_info()
         
-        max_idx = np.argmax(similarities)
-        max_similarity = similarities[max_idx]
-        comparison_time = (time.time() - t3) * 1000
+        if embeddings_matrix is None or len(employee_info) == 0:
+            logger.warning("No registered faces in cache")
+            return {
+                "success": True,
+                "is_duplicate": False,
+                "message": "Cache loading... try again"
+            }
+        
+        comparison_start = time.time()
+        matched, max_similarity = find_best_match(
+            embeddings_matrix,
+            employee_info,
+            detected_embedding,
+            ServiceConfig.FACE_MATCH_THRESHOLD
+        )
+        comparison_time = (time.time() - comparison_start) * 1000
         total_time = (time.time() - start_time) * 1000
         
-        # DUPLICATE FOUND?
-        if max_similarity >= FACE_MATCH_THRESHOLD:
-            matched = cached_employee_info[max_idx]
-            logger.warning(f" DUPLICATE: {matched.get('name')} ({max_similarity:.1%}) in {total_time:.0f}ms [{len(cached_employee_info)} compared]")
+        if matched:
+            logger.warning(
+                f"Duplicate found: {matched.get('name')} "
+                f"({max_similarity:.1%}) in {total_time:.0f}ms "
+                f"[{len(employee_info)} compared]"
+            )
             return {
                 "success": True,
                 "is_duplicate": True,
@@ -377,11 +548,13 @@ async def check_face_duplicate(file: UploadFile = File(...)):
                 "processing_time_seconds": round(total_time/1000, 2)
             }
         
-        # NEW FACE
-        logger.info(f" NEW FACE ({max_similarity:.1%} max) in {total_time:.0f}ms [{len(cached_employee_info)} compared]")
+        logger.info(
+            f"New face ({max_similarity:.1%} max) in {total_time:.0f}ms "
+            f"[{len(employee_info)} compared]"
+        )
         return {
-            "success": True, 
-            "is_duplicate": False, 
+            "success": True,
+            "is_duplicate": False,
             "message": "Ready to register",
             "processing_time_ms": round(total_time, 1),
             "processing_time_seconds": round(total_time/1000, 2)
@@ -401,75 +574,73 @@ async def register_face(
     floor_id: int = Form(...),
     room_location: str = Form(...)
 ):
-    """
-    FAST face registration with duplicate checking
-    Saves face embedding + photo to database
-    """
+    """Register a new face for an employee with duplicate checking."""
     if not INSIGHTFACE_AVAILABLE:
-        raise HTTPException(503, " Face recognition unavailable - InsightFace not loaded")
+        raise HTTPException(503, "Face recognition unavailable - InsightFace not loaded")
     
     try:
-        # Read and detect face
         contents = await file.read()
         image = image_to_numpy(contents)
         faces = face_detector.get(image)
         
         if len(faces) == 0:
             raise HTTPException(400, "No face detected in image")
-        
         if len(faces) > 1:
             raise HTTPException(400, "Multiple faces detected - only one person allowed")
         
-        # Get face data
         face = faces[0]
-        face_embedding_array = face.embedding  # Keep as numpy for FAST comparison
-        face_embedding = face_embedding_array.tolist()  # Convert for storage
+        face_embedding_array = face.embedding
+        face_embedding = face_embedding_array.tolist()
         confidence = float(face.det_score)
         bbox = face.bbox.astype(int).tolist()
         
-        # VALIDATE: Ensure embedding has correct dimension
-        EXPECTED_EMBEDDING_DIM = 512
-        if len(face_embedding) != EXPECTED_EMBEDDING_DIM:
+        if len(face_embedding) != ServiceConfig.EXPECTED_EMBEDDING_DIM:
             raise HTTPException(
-                500, 
-                f"Invalid embedding dimension: {len(face_embedding)} (expected {EXPECTED_EMBEDDING_DIM}). Please restart the face service."
+                500,
+                f"Invalid embedding dimension: {len(face_embedding)} "
+                f"(expected {ServiceConfig.EXPECTED_EMBEDDING_DIM}). "
+                f"Please restart the face service."
             )
         
-        # CRITICAL DUPLICATE CHECK - Use existing cache (already fresh from UI check)
-        cache_age = (datetime.now() - cache_timestamp).seconds if cache_timestamp else 999
-        if cache_age > 10:
-            logger.info(f" Cache stale ({cache_age}s) - Refreshing...")
+        cache_age = cache.get_cache_age()
+        if cache_age > ServiceConfig.CACHE_REFRESH_SECONDS:
+            logger.info(f"Cache stale ({cache_age}s) - Refreshing...")
             refresh_employee_cache()
-        logger.info(f" Checking against {len(cached_employee_info) if cached_employee_info else 0} registered faces (cache age: {cache_age}s)")
         
-        if cached_embeddings_matrix is not None and len(cached_employee_info) > 0:
-            # Vectorized similarity (all faces at once)
-            similarities = np.dot(cached_embeddings_matrix, face_embedding_array) / \
-                          (np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(face_embedding_array))
+        embeddings_matrix = cache.get_embeddings_matrix()
+        employee_info = cache.get_employee_info()
+        
+        logger.info(
+            f"Checking against {len(employee_info)} registered faces "
+            f"(cache age: {cache_age}s)"
+        )
+        
+        if embeddings_matrix is not None and len(employee_info) > 0:
+            matched, max_similarity = find_best_match(
+                embeddings_matrix,
+                employee_info,
+                face_embedding_array,
+                ServiceConfig.FACE_MATCH_THRESHOLD
+            )
             
-            max_idx = np.argmax(similarities)
-            max_similarity = similarities[max_idx]
-            
-            if max_similarity >= FACE_MATCH_THRESHOLD:
-                matched = cached_employee_info[max_idx]
+            if matched:
                 raise HTTPException(
                     400,
-                    f" DUPLICATE! {matched.get('name', 'Employee')} already registered as #{matched.get('employee_number', matched['id'])} (Match: {max_similarity:.0%})"
+                    f"Duplicate found: {matched.get('name', 'Employee')} "
+                    f"already registered as #{matched.get('employee_number', matched['id'])} "
+                    f"(Match: {max_similarity:.0%})"
                 )
         
-        # Convert image to base64 for storage
-        import base64
         _, buffer = cv2.imencode('.jpg', cv2.cvtColor(image, cv2.COLOR_RGB2BGR))
         image_base64 = base64.b64encode(buffer).decode('utf-8')
         
-        # 📤 Send to Laravel backend with ALL data
-        logger.info(f" Registering face for employee {employee_id}")
-        logger.info(f"   - Confidence: {confidence:.2%}")
-        logger.info(f"   - Embedding size: {len(face_embedding)}")
-        logger.info(f"   - Floor ID: {floor_id}, Room: {room_location}")
+        logger.info(f"Registering face for employee {employee_id}")
+        logger.info(f"  - Confidence: {confidence:.2%}")
+        logger.info(f"  - Embedding size: {len(face_embedding)}")
+        logger.info(f"  - Floor ID: {floor_id}, Room: {room_location}")
         
         response = requests.post(
-            f"{LARAVEL_API_URL}/api/v1/employees/{employee_id}/register-face",
+            f"{ServiceConfig.LARAVEL_API_URL}/api/v1/employees/{employee_id}/register-face",
             json={
                 'embedding': face_embedding,
                 'confidence': confidence,
@@ -483,14 +654,14 @@ async def register_face(
                 "Accept": "application/json",
                 "X-Requested-With": "XMLHttpRequest"
             },
-            timeout=10
+            timeout=ServiceConfig.REQUEST_TIMEOUT
         )
         
-        logger.info(f" Laravel response: Status {response.status_code}")
+        logger.info(f"Backend response: Status {response.status_code}")
         
         if response.status_code != 200:
             error_text = response.text
-            logger.error(f" Registration failed: {error_text}")
+            logger.error(f"Registration failed: {error_text}")
             try:
                 error_data = response.json()
                 raise HTTPException(response.status_code, error_data.get('message', error_text))
@@ -498,13 +669,11 @@ async def register_face(
                 raise HTTPException(response.status_code, f"Backend error: {error_text}")
         
         response_data = response.json()
-        logger.info(f" SUCCESS: Face registered for employee {employee_id}")
-        logger.info(f"   - Response: {response_data}")
+        logger.info(f"Face registered successfully for employee {employee_id}")
         
-        # Refresh cache IMMEDIATELY to include new employee (prevents duplicate registration attempts)
-        logger.info(" Refreshing employee cache with new face...")
+        logger.info("Refreshing employee cache with new face...")
         refresh_employee_cache()
-        logger.info(f" Cache updated - Now tracking {len(cached_employees)} employees")
+        logger.info(f"Cache updated - Now tracking {len(cache.get_employees())} employees")
         
         return {
             "success": True,
@@ -518,20 +687,19 @@ async def register_face(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f" Register face error: {e}")
+        logger.error(f"Face registration error: {e}")
         raise HTTPException(500, str(e))
 
 
 @app.post("/identify-face")
 async def identify_face(file: UploadFile = File(...)):
-    """Face identification using precomputed embeddings matrix"""
+    """Identify a face by comparing against registered employees."""
     if not INSIGHTFACE_AVAILABLE:
         raise HTTPException(503, "Face recognition unavailable")
     
     try:
         contents = await file.read()
         image = image_to_numpy(contents)
-        
         faces = face_detector.get(image)
         
         if not faces:
@@ -542,48 +710,44 @@ async def identify_face(file: UploadFile = File(...)):
                 "face_count": 0
             }
         
-        # Use the best (most confident) face
         face = faces[0]
-        face_embedding = face.embedding.tolist()
+        face_embedding = face.embedding
         
-        # Comparison using cached matrix
-        if cached_embeddings_matrix is not None and len(cached_employee_ids) > 0:
-            query_vec = np.array(face_embedding).reshape(1, -1)
+        embeddings_matrix = cache.get_embeddings_matrix()
+        employee_info = cache.get_employee_info()
+        
+        if embeddings_matrix is not None and len(employee_info) > 0:
+            matched, best_similarity = find_best_match(
+                embeddings_matrix,
+                employee_info,
+                face_embedding,
+                ServiceConfig.FACE_MATCH_THRESHOLD
+            )
             
-            # Vectorized cosine similarity for large employee sets
-            similarities = np.dot(cached_embeddings_matrix, query_vec.T).flatten()
-            norms = np.linalg.norm(cached_embeddings_matrix, axis=1) * np.linalg.norm(query_vec)
-            cosine_scores = similarities / norms
-            
-            # Find best match
-            best_idx = np.argmax(cosine_scores)
-            best_similarity = float(cosine_scores[best_idx])
-            
-            # Threshold for identification (0.4 is typical for face recognition)
-            SIMILARITY_THRESHOLD = 0.4
-            
-            if best_similarity >= SIMILARITY_THRESHOLD:
-                employee_id = cached_employee_ids[best_idx]
-                employee_name = cached_employee_names[best_idx]
-                
-                logger.info(f" Face identified: {employee_name} (ID: {employee_id}) - Similarity: {best_similarity:.3f}")
-                
+            if matched:
+                logger.info(
+                    f"Face identified: {matched.get('name')} (ID: {matched['id']}) - "
+                    f"Similarity: {best_similarity:.3f}"
+                )
                 return {
                     "success": True,
                     "identified": True,
-                    "employee_id": employee_id,
-                    "employee_name": employee_name,
+                    "employee_id": matched['id'],
+                    "employee_name": matched.get('name', 'Unknown'),
                     "similarity": best_similarity,
                     "confidence": float(face.det_score),
-                    "message": f"Identified as {employee_name}"
+                    "message": f"Identified as {matched.get('name')}"
                 }
             else:
-                logger.info(f" No match found - Best similarity: {best_similarity:.3f} (threshold: {SIMILARITY_THRESHOLD})")
+                logger.info(
+                    f"No match found - Best similarity: {best_similarity:.3f} "
+                    f"(threshold: {ServiceConfig.FACE_MATCH_THRESHOLD})"
+                )
                 return {
                     "success": True,
                     "identified": False,
                     "best_similarity": best_similarity,
-                    "threshold": SIMILARITY_THRESHOLD,
+                    "threshold": ServiceConfig.FACE_MATCH_THRESHOLD,
                     "message": "Face not recognized"
                 }
         else:
@@ -596,42 +760,38 @@ async def identify_face(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f" Identify face error: {e}")
+        logger.error(f"Face identification error: {e}")
         raise HTTPException(500, str(e))
 
 
 @app.on_event("startup")
 async def startup_event():
-    """Service startup with BLOCKING cache load for guaranteed readiness"""
+    """Load employee cache on service startup."""
     logger.info("Face Recognition Service starting...")
-    logger.info(" Loading employee cache NOW (this will take 1-2 seconds)...")
-    # Load cache SYNCHRONOUSLY on startup - WAIT for it!
+    logger.info("Loading employee cache...")
     await asyncio.to_thread(refresh_employee_cache)
-    logger.info("Cache loaded - Service ready for duplicate checks")
+    logger.info("Cache loaded - Service ready")
 
 
 if __name__ == "__main__":
     import uvicorn
     import socket
     
-    # Check if port is available
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.bind(("0.0.0.0", 8001))
         sock.close()
-        logger.info(" Port 8001 is available")
+        logger.info("Port 8001 is available")
     except OSError:
-        logger.warning(" Port 8001 already in use, will attempt to reuse...")
+        logger.warning("Port 8001 already in use, will attempt to reuse...")
     
-    # Run with socket reuse enabled to prevent "address already in use" errors
     uvicorn.run(
-        app, 
-        host="0.0.0.0", 
-        port=8001, 
-        log_level="warning",  # Reduce log spam
-        access_log=False,  # Disable access logs for speed
+        app,
+        host="0.0.0.0",
+        port=8001,
+        log_level="warning",
+        access_log=False,
         server_header=False,
-        limit_concurrency=50,  # Limit concurrent connections
-        timeout_keep_alive=5  # Shorter keepalive
+        limit_concurrency=50,
+        timeout_keep_alive=5
     )
-

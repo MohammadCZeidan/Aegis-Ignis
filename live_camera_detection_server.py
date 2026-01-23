@@ -54,11 +54,11 @@ print(f" ML Model Available: {ml_fire_detector.is_ml_available()}")
 print(f" N8N Webhook: {'Configured ✓' if N8N_WEBHOOK_URL else 'Not configured ✗'}")
 print("="*80)
 
-# Performance settings - MAXIMUM SPEED!
+# Performance settings
 CAMERA_FPS = 60  # Target FPS
-FRAME_SKIP_FACE = 2  # Check faces every 2 frames (30 FPS - FAST!)
-FRAME_SKIP_FIRE = 4  # Check fire every 4 frames (15 per second - VERY FAST!)
-JPEG_QUALITY = 75  # Lower quality for speed
+FRAME_SKIP_FACE = 2  # Check faces every 2 frames (30 FPS effective)
+FRAME_SKIP_FIRE = 4  # Check fire every 4 frames (15 FPS effective)
+JPEG_QUALITY = 75  # JPEG compression quality (balance quality/speed)
 STREAM_FPS = 30  # Stream at 30 FPS
 
 # Person tracking (5-minute timeout)
@@ -256,8 +256,8 @@ class CameraStream:
         
         # Detection counters
         self.frame_count = 0
-        self.face_detect_interval = FRAME_SKIP_FACE  # Faster face detection!
-        self.fire_detect_interval = FRAME_SKIP_FIRE  # MUCH faster fire detection!
+        self.face_detect_interval = FRAME_SKIP_FACE
+        self.fire_detect_interval = FRAME_SKIP_FIRE
         
     def start(self):
         """Start camera capture thread"""
@@ -268,12 +268,12 @@ class CameraStream:
         stream_source = int(self.stream_url) if self.stream_url.isdigit() else self.stream_url
         self.cap = cv2.VideoCapture(stream_source)
         
-        # Optimize camera settings for MAXIMUM SPEED
+        # Configure camera settings for performance
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize lag
         self.cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 480)  # Lower res for speed
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)  # Lower res for speed
-        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # Faster codec
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 480)  # Reduced resolution for performance
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)  # Reduced resolution for performance
+        self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # MJPEG codec for performance
         
         if not self.cap.isOpened():
             print(f"✗ Failed to open camera {self.name}")
@@ -469,7 +469,7 @@ def generate_frames(camera_id):
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
                 y_pos += 25
         
-        # Encode frame (lower quality for speed)
+        # Encode frame with configured quality
         ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
         frame_bytes = buffer.tobytes()
         del buffer  # Free memory immediately

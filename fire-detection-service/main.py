@@ -34,11 +34,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class FireDetectionConfig:
+    """Configuration for fire detection service."""
     API_BASE_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
     CAMERA_ID = int(os.getenv('CAMERA_ID', '1'))
-    CAMERA_NAME = None
-    FLOOR_ID = None
-    ROOM_LOCATION = None
+    CAMERA_NAME: Optional[str] = None
+    FLOOR_ID: Optional[int] = None
+    ROOM_LOCATION: Optional[str] = None
     DETECTION_INTERVAL = float(os.getenv('DETECTION_INTERVAL', '1.0'))
     CONFIDENCE_THRESHOLD = float(os.getenv('CONFIDENCE_THRESHOLD', '0.85'))
     COOLDOWN_SECONDS = int(os.getenv('COOLDOWN_SECONDS', '5'))
@@ -46,23 +47,26 @@ class FireDetectionConfig:
     
     @classmethod
     def update_camera_location(cls, floor_id: int, room_location: str, camera_name: str = None):
+        """Update camera location configuration."""
         cls.FLOOR_ID = floor_id
         cls.ROOM_LOCATION = room_location
         if camera_name:
             cls.CAMERA_NAME = camera_name
-
-# Legacy CONFIG for backward compatibility
-CONFIG = {
-    'api_base_url': FireDetectionConfig.API_BASE_URL,
-    'camera_id': FireDetectionConfig.CAMERA_ID,
-    'camera_name': FireDetectionConfig.CAMERA_NAME,
-    'floor_id': FireDetectionConfig.FLOOR_ID,
-    'room_location': FireDetectionConfig.ROOM_LOCATION,
-    'detection_interval': FireDetectionConfig.DETECTION_INTERVAL,
-    'confidence_threshold': FireDetectionConfig.CONFIDENCE_THRESHOLD,
-    'cooldown_seconds': FireDetectionConfig.COOLDOWN_SECONDS,
-    'service_port': FireDetectionConfig.SERVICE_PORT,
-}
+    
+    @classmethod
+    def get_config_dict(cls) -> Dict:
+        """Get configuration as dictionary for backward compatibility."""
+        return {
+            'api_base_url': cls.API_BASE_URL,
+            'camera_id': cls.CAMERA_ID,
+            'camera_name': cls.CAMERA_NAME,
+            'floor_id': cls.FLOOR_ID,
+            'room_location': cls.ROOM_LOCATION,
+            'detection_interval': cls.DETECTION_INTERVAL,
+            'confidence_threshold': cls.CONFIDENCE_THRESHOLD,
+            'cooldown_seconds': cls.COOLDOWN_SECONDS,
+            'service_port': cls.SERVICE_PORT,
+        }
 
 
 class CameraLocationService:
@@ -85,9 +89,6 @@ class CameraLocationService:
                 camera_name = camera_data.get('name', f'Camera {camera_id}')
                 
                 FireDetectionConfig.update_camera_location(floor_id, room_location, camera_name)
-                CONFIG['floor_id'] = floor_id
-                CONFIG['room_location'] = room_location
-                CONFIG['camera_name'] = camera_name
                 
                 CameraLocationService._log_camera_info(camera_data, camera_id)
                 return True
@@ -124,9 +125,6 @@ class CameraLocationService:
                     camera_id = FireDetectionConfig.CAMERA_ID
                     default_name = f'Camera {camera_id}'
                     FireDetectionConfig.update_camera_location(floor_id, f'{floor_name} Hall', default_name)
-                    CONFIG['floor_id'] = floor_id
-                    CONFIG['room_location'] = f'{floor_name} Hall'
-                    CONFIG['camera_name'] = default_name
                     logger.info(f"Using first available floor: {floor_name} (ID: {floor_id})")
                     return
         except Exception as e:
@@ -136,9 +134,6 @@ class CameraLocationService:
         camera_id = FireDetectionConfig.CAMERA_ID
         default_name = f'Camera {camera_id}'
         FireDetectionConfig.update_camera_location(None, 'Unknown', default_name)
-        CONFIG['floor_id'] = None
-        CONFIG['room_location'] = 'Unknown'
-        CONFIG['camera_name'] = default_name
 
 # Backward compatibility function
 def fetch_camera_location() -> bool:
@@ -151,23 +146,33 @@ app = FastAPI(title="Fire Detection Service", version="1.0.0")
 class FireColorDetector:
     """Handles fire color detection using HSV color space."""
     
-    # Fire color ranges for HSV detection
+    # HSV color ranges for fire detection
+    # White: High brightness, low saturation (for bright flames)
     WHITE_LOWER = np.array([0, 0, 200])
     WHITE_UPPER = np.array([180, 60, 255])
     
+    # Orange: Hue 8-18, high saturation and value
     ORANGE_LOWER = np.array([8, 220, 248])
     ORANGE_UPPER = np.array([18, 255, 255])
     
+    # Red: Two ranges due to HSV wrap-around (0-10 and 165-180)
     RED_LOWER_1 = np.array([0, 100, 150])
     RED_UPPER_1 = np.array([10, 255, 255])
     RED_LOWER_2 = np.array([165, 100, 150])
     RED_UPPER_2 = np.array([180, 255, 255])
     
+    # Yellow: Hue 18-30, high saturation and value
     YELLOW_LOWER = np.array([18, 200, 250])
     YELLOW_UPPER = np.array([30, 255, 255])
     
+    # Brightness threshold for filtering (0-255)
+    # Values above this are considered ultra-bright (fire-like)
     BRIGHTNESS_THRESHOLD = 253
+    
+    # Minimum contour area in pixels (filters noise)
     MIN_CONTOUR_AREA = 3000
+    
+    # Minimum fill ratio (0.0-1.0) - percentage of bounding box that must be fire-colored
     MIN_FILL_RATIO = 0.4
     
     @staticmethod
@@ -186,11 +191,11 @@ class FireColorDetector:
         return cv2.bitwise_or(mask_white, cv2.bitwise_or(mask_orange, cv2.bitwise_or(mask_red, mask_yellow)))
     
     @staticmethod
-    def apply_brightness_filter(frame, color_mask):
+    def apply_brightness_filter(frame: np.ndarray, color_mask: np.ndarray) -> np.ndarray:
         """Apply brightness filtering to color mask."""
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        _, ultra_bright = cv2.threshold(gray, FireColorDetector.BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
-        return cv2.bitwise_and(color_mask, ultra_bright)
+        _, bright_mask = cv2.threshold(gray, FireColorDetector.BRIGHTNESS_THRESHOLD, 255, cv2.THRESH_BINARY)
+        return cv2.bitwise_and(color_mask, bright_mask)
     
     @staticmethod
     def extract_detections_from_contours(contours, mask):
@@ -215,7 +220,7 @@ class FireColorDetector:
         if fill_ratio >= FireColorDetector.MIN_FILL_RATIO:
             confidence = min(1.0, fill_ratio * 1.5)
             
-            if confidence >= CONFIG['confidence_threshold']:
+            if confidence >= FireDetectionConfig.CONFIDENCE_THRESHOLD:
                 return {
                     'bbox': [int(x), int(y), int(w), int(h)],
                     'confidence': float(confidence),
@@ -268,7 +273,7 @@ class ScreenshotHandler:
     def _generate_filename(self) -> str:
         """Generate unique filename for screenshot."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        return f"fire_cam{CONFIG['camera_id']}_floor{CONFIG['floor_id']}_{timestamp}.jpg"
+        return f"fire_cam{FireDetectionConfig.CAMERA_ID}_floor{FireDetectionConfig.FLOOR_ID}_{timestamp}.jpg"
     
     def _annotate_frame(self, frame: np.ndarray, detection: Dict) -> np.ndarray:
         """Draw bounding box and confidence on frame."""
@@ -298,7 +303,7 @@ class ScreenshotHandler:
         data = {'disk': 'public', 'folder': 'alerts'}
         
         response = self.session.post(
-            f"{CONFIG['api_base_url']}/upload",
+            f"{FireDetectionConfig.API_BASE_URL}/upload",
             files=files,
             data=data,
             timeout=15
@@ -342,12 +347,12 @@ class DetectionReporter:
         severity = 'critical' if detection['confidence'] > 0.7 else 'warning'
         
         base_payload = {
-            'camera_name': CONFIG['camera_name'] or f"Camera {CONFIG['camera_id']}",
+            'camera_name': FireDetectionConfig.CAMERA_NAME or f"Camera {FireDetectionConfig.CAMERA_ID}",
             'event_type': 'fire',
             'severity': severity,
-            'camera_id': CONFIG['camera_id'],
-            'floor_id': CONFIG['floor_id'],
-            'room': CONFIG['room_location'],
+            'camera_id': FireDetectionConfig.CAMERA_ID,
+            'floor_id': FireDetectionConfig.FLOOR_ID,
+            'room': FireDetectionConfig.ROOM_LOCATION,
             'confidence': confidence_percentage,
             'fire_type': 'fire',
             'detected_at': datetime.now().isoformat()
@@ -362,7 +367,7 @@ class DetectionReporter:
     
     def _send_report(self, payload: Dict) -> Optional[Dict]:
         """Send detection report to API endpoint."""
-        endpoint = f"{CONFIG['api_base_url']}/alerts/fire"
+        endpoint = f"{FireDetectionConfig.API_BASE_URL}/alerts/fire"
         
         try:
             headers = {
@@ -386,15 +391,20 @@ class DetectionReporter:
 class FireDetectionService:
     """Fire detection service with API reporting."""
     
-    def __init__(self):
+    def __init__(self, alert_manager: Optional[AlertManager] = None):
+        """
+        Initialize fire detection service.
+        
+        Args:
+            alert_manager: Optional AlertManager instance (for dependency injection)
+        """
         self.camera = None
         self.running = False
         self.last_detection_time = None
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         self.detection_reporter = DetectionReporter(self.session)
-        # Initialize AlertManager for WhatsApp alerts
-        self.alert_manager = AlertManager(n8n_webhook_url=os.getenv('N8N_WEBHOOK_URL'))
+        self.alert_manager = alert_manager or AlertManager(n8n_webhook_url=os.getenv('N8N_WEBHOOK_URL'))
         
     def initialize_camera(self, camera_id: int = 0) -> bool:
         """Initialize camera feed."""
@@ -427,7 +437,7 @@ class FireDetectionService:
             return True
         
         elapsed = time.time() - self.last_detection_time
-        return elapsed >= CONFIG['cooldown_seconds']
+        return elapsed >= FireDetectionConfig.COOLDOWN_SECONDS
     
     def run(self):
         """Main detection loop."""
@@ -463,7 +473,7 @@ class ServiceRunner:
         
     def _prepare_camera(self) -> bool:
         """Prepare camera for monitoring."""
-        return self.fire_service.initialize_camera(CONFIG['camera_id'])
+        return self.fire_service.initialize_camera(FireDetectionConfig.CAMERA_ID)
     
     def _start_monitoring_loop(self):
         """Start the main monitoring loop."""
@@ -480,7 +490,7 @@ class ServiceRunner:
                 if frame_count % 100 == 0:
                     logger.info(f"Monitoring... ({frame_count} frames processed)")
                 
-                time.sleep(CONFIG['detection_interval'])
+                time.sleep(FireDetectionConfig.DETECTION_INTERVAL)
                 
         except KeyboardInterrupt:
             logger.info("Service stopped by user")
@@ -493,11 +503,11 @@ class ServiceRunner:
         """Log service startup information."""
         logger.info("Fire Detection Service started")
         logger.info(f"   Physical Camera: Webcam 0")
-        logger.info(f"   Database Camera ID: {CONFIG['camera_id']}")
-        logger.info(f"   Floor ID: {CONFIG['floor_id']}")
-        logger.info(f"   Room: {CONFIG['room_location']}")
-        logger.info(f"   Backend API: {CONFIG['api_base_url']}")
-        logger.info(f"   Confidence threshold: {CONFIG['confidence_threshold']}")
+        logger.info(f"   Database Camera ID: {FireDetectionConfig.CAMERA_ID}")
+        logger.info(f"   Floor ID: {FireDetectionConfig.FLOOR_ID}")
+        logger.info(f"   Room: {FireDetectionConfig.ROOM_LOCATION}")
+        logger.info(f"   Backend API: {FireDetectionConfig.API_BASE_URL}")
+        logger.info(f"   Confidence threshold: {FireDetectionConfig.CONFIDENCE_THRESHOLD}")
     
     def _process_frame(self, frame_count: int) -> bool:
         """Process a single frame from camera."""
@@ -525,22 +535,21 @@ class ServiceRunner:
             # Send WhatsApp alert with floor occupancy
             try:
                 # Get current floor occupancy
-                occupancy_data = self.fire_service.alert_manager.get_floor_occupancy(CONFIG['floor_id'])
+                occupancy_data = self.fire_service.alert_manager.get_floor_occupancy(FireDetectionConfig.FLOOR_ID)
                 people_detected = occupancy_data.get('people_details', [])
                 people_count = len(people_detected)
                 
-                # Send fire alert via WhatsApp and N8N
                 self.fire_service.alert_manager.send_fire_alert(
-                    floor_id=CONFIG['floor_id'],
-                    camera_id=CONFIG['camera_id'],
-                    camera_name=CONFIG['camera_name'] or f"Camera {CONFIG['camera_id']}",
-                    room=CONFIG['room_location'] or 'Unknown',
+                    floor_id=FireDetectionConfig.FLOOR_ID,
+                    camera_id=FireDetectionConfig.CAMERA_ID,
+                    camera_name=FireDetectionConfig.CAMERA_NAME or f"Camera {FireDetectionConfig.CAMERA_ID}",
+                    room=FireDetectionConfig.ROOM_LOCATION or 'Unknown',
                     people_detected=people_detected,
                     fire_type='fire',
                     confidence=detection['confidence'],
                     severity='critical' if detection['confidence'] > 0.7 else 'warning'
                 )
-                logger.info(f"WhatsApp alert sent for fire on Floor {CONFIG['floor_id']}")
+                logger.info(f"WhatsApp alert sent for fire on Floor {FireDetectionConfig.FLOOR_ID}")
             except Exception as e:
                 logger.error(f"Failed to send WhatsApp alert: {e}")
 
@@ -611,12 +620,12 @@ async def health_check():
         "version": "1.0.0",
         "camera": {
             "status": camera_status,
-            "id": CONFIG['camera_id']
+            "id": FireDetectionConfig.CAMERA_ID
         },
         "configuration": {
-            "floor_id": CONFIG['floor_id'],
-            "room_location": CONFIG['room_location'],
-            "backend_api": CONFIG['api_base_url']
+            "floor_id": FireDetectionConfig.FLOOR_ID,
+            "room_location": FireDetectionConfig.ROOM_LOCATION,
+            "backend_api": FireDetectionConfig.API_BASE_URL
         },
         "timestamp": datetime.now().isoformat()
     }
@@ -628,7 +637,7 @@ async def get_status():
     return {
         "running": fire_service.running,
         "last_detection": fire_service.last_detection_time,
-        "config": CONFIG
+        "config": FireDetectionConfig.get_config_dict()
     }
 
 
@@ -663,4 +672,4 @@ if __name__ == "__main__":
     detection_thread.start()
     
     # Run FastAPI server
-    uvicorn.run(app, host="0.0.0.0", port=CONFIG['service_port'])
+    uvicorn.run(app, host="0.0.0.0", port=FireDetectionConfig.SERVICE_PORT)

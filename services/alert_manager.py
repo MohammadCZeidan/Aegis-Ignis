@@ -47,7 +47,7 @@ class AlertManager:
         if TWILIO_AVAILABLE and self.twilio_sid and self.twilio_token:
             try:
                 self.twilio_client = TwilioClient(self.twilio_sid, self.twilio_token)
-                logger.info(" Twilio WhatsApp client initialized")
+                logger.info("Twilio WhatsApp client initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize Twilio: {e}")
         
@@ -135,7 +135,7 @@ class AlertManager:
             severity=severity
         )
         if whatsapp_success:
-            logger.info(f" WhatsApp alert sent successfully for Floor {floor_id}")
+                logger.info(f"WhatsApp alert sent successfully for Floor {floor_id}")
         
         # Also log to backend (existing system)
         backend_success = self._log_to_backend(alert_data)
@@ -282,7 +282,7 @@ class AlertManager:
             return True
             
         except Exception as e:
-            logger.error(f" Failed to send WhatsApp alert: {e}")
+            logger.error(f"Failed to send WhatsApp alert: {e}")
             return False
     
     def _send_to_n8n(self, alert_data: Dict) -> bool:
@@ -308,10 +308,10 @@ class AlertManager:
             )
             
             if response.status_code in [200, 201, 202]:
-                logger.info(f" N8N alert sent successfully: {alert_data['alert_type']}")
+                logger.info(f"N8N alert sent successfully: {alert_data['alert_type']}")
                 return True
             else:
-                logger.error(f" N8N alert failed: {response.status_code} - {response.text}")
+                logger.error(f"N8N alert failed: {response.status_code} - {response.text}")
                 return False
                 
         except requests.exceptions.Timeout:
