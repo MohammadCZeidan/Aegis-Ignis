@@ -27,8 +27,19 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose version
 
+      - name: Verify Dockerfile and services directory
+        run: |
+          echo "Checking Dockerfile content..."
+          grep -n "COPY.*services" fire-detection-service/Dockerfile || true
+          echo "Checking if services directory exists..."
+          ls -la services/ || echo "ERROR: services directory not found!"
+          echo "Services directory contents:"
+          ls -la services/ || true
+
       - name: Build containers
-        run: docker compose build
+        run: |
+          echo "Building all containers..."
+          docker compose build --no-cache
 
       - name: Run Laravel migrations
         run: |
