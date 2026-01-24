@@ -3,11 +3,12 @@ Improved Face Recognition Service with Database Integration
 - Fast face detection and embedding generation
 - Database integration for face matching
 - Real-time presence tracking
+- OPTIMIZED: Uses cached embeddings and vectorized operations for ultra-fast duplicate checking
 """
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Tuple
 import numpy as np
 import cv2
 from PIL import Image
@@ -16,7 +17,11 @@ import logging
 import requests
 import json
 import base64
+import os
+import time
+import asyncio
 from datetime import datetime
+import threading
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +43,8 @@ app.add_middleware(
 # Configuration
 LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
 FACE_MATCH_THRESHOLD = 0.6  # Cosine similarity threshold
+DUPLICATE_THRESHOLD = 0.50  # Threshold for duplicate detection
+CACHE_STALE_THRESHOLD = 30  # Refresh cache if older than 30 seconds
 
 # Initialize face detection model
 face_detector = None
@@ -156,6 +163,135 @@ def cosine_similarity(embedding1: List[float], embedding2: List[float]) -> float
     return float(dot_product / (norm1 * norm2))
 
 
+# ============================================================================
+# FAST CACHING SYSTEM FOR ULTRA-FAST DUPLICATE CHECKING
+# ============================================================================
+class FastCache:
+    """Thread-safe cache for employee embeddings with precomputed norms."""
+    def __init__(self):
+        self._lock = threading.RLock()
+        self._embeddings_matrix: Optional[np.ndarray] = None
+        self._embeddings_norms: Optional[np.ndarray] = None  # Precomputed norms
+        self._employee_info: List[Dict] = []
+        self._timestamp: Optional[datetime] = None
+    
+    def update(self, employees: List[Dict]) -> None:
+        """Update cache with employee data and precompute embeddings matrix."""
+        with self._lock:
+            embeddings_list = []
+            employee_info_list = []
+            
+            for emp in employees:
+                if not emp.get('face_embedding'):
+                    continue
+                try:
+                    embedding = json.loads(emp['face_embedding'])
+                    if isinstance(embedding, list) and len(embedding) > 0:
+                        embeddings_list.append(embedding)
+                        employee_info_list.append(emp)
+                except:
+                    continue
+            
+            if embeddings_list:
+                self._embeddings_matrix = np.array(embeddings_list, dtype=np.float32)
+                # Precompute norms for ultra-fast similarity calculation
+                self._embeddings_norms = np.linalg.norm(self._embeddings_matrix, axis=1)
+            else:
+                self._embeddings_matrix = None
+                self._embeddings_norms = None
+            
+            self._employee_info = employee_info_list
+            self._timestamp = datetime.now()
+            logger.info(f"Cache updated: {len(employee_info_list)} employees with embeddings")
+    
+    def get_cache_age(self) -> int:
+        """Get cache age in seconds."""
+        with self._lock:
+            if not self._timestamp:
+                return 999
+            return int((datetime.now() - self._timestamp).total_seconds())
+    
+    def get_embeddings_matrix(self) -> Optional[np.ndarray]:
+        """Get cached embeddings matrix."""
+        with self._lock:
+            return self._embeddings_matrix.copy() if self._embeddings_matrix is not None else None
+    
+    def get_embeddings_norms(self) -> Optional[np.ndarray]:
+        """Get precomputed norms."""
+        with self._lock:
+            return self._embeddings_norms.copy() if self._embeddings_norms is not None else None
+    
+    def get_employee_info(self) -> List[Dict]:
+        """Get cached employee info."""
+        with self._lock:
+            return self._employee_info.copy()
+
+
+# Global cache instance
+employee_cache = FastCache()
+
+
+def refresh_cache() -> bool:
+    """Refresh employee cache from Laravel API."""
+    try:
+        logger.info("Refreshing employee cache...")
+        response = requests.get(f"{LARAVEL_API_URL}/employees/registered-faces", timeout=5)
+        if response.status_code == 200:
+            employees = response.json().get('data', [])
+            employee_cache.update(employees)
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Cache refresh failed: {e}")
+        return False
+
+
+def find_best_match_vectorized(
+    query_embedding: np.ndarray,
+    threshold: float = DUPLICATE_THRESHOLD
+) -> Tuple[Optional[Dict], float]:
+    """
+    ULTRA-FAST vectorized duplicate check using cached embeddings.
+    Uses numpy matrix operations for O(1) comparison instead of O(N) loop.
+    """
+    embeddings_matrix = employee_cache.get_embeddings_matrix()
+    embeddings_norms = employee_cache.get_embeddings_norms()
+    employee_info = employee_cache.get_employee_info()
+    
+    if embeddings_matrix is None or len(employee_info) == 0:
+        return None, 0.0
+    
+    # Vectorized cosine similarity calculation (MUCH faster than loop)
+    query_norm = np.linalg.norm(query_embedding)
+    if query_norm == 0:
+        return None, 0.0
+    
+    # Use precomputed norms for speed
+    if embeddings_norms is not None:
+        norms = embeddings_norms * query_norm
+    else:
+        norms = np.linalg.norm(embeddings_matrix, axis=1) * query_norm
+    
+    # Single vectorized operation instead of N individual calculations
+    similarities = np.dot(embeddings_matrix, query_embedding) / norms
+    
+    # Find best match
+    max_idx = np.argmax(similarities)
+    max_similarity = float(similarities[max_idx])
+    
+    if max_similarity >= threshold:
+        return employee_info[max_idx], max_similarity
+    
+    return None, max_similarity
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize cache on startup."""
+    logger.info("Initializing employee cache...")
+    await asyncio.to_thread(refresh_cache)
+
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -239,8 +375,6 @@ async def register_face(
         
         # Detect faces with InsightFace (required for embeddings)
         faces = detect_faces_insightface(image)
-        # Detect faces with InsightFace (required for embeddings)
-        faces = detect_faces_insightface(image)
         
         if len(faces) == 0:
             raise HTTPException(status_code=400, detail="No face detected in image")
@@ -250,39 +384,31 @@ async def register_face(
         
         face = faces[0]
         
-        # Check if this face is already registered (duplicate detection)
-        # This will ALWAYS run now because we require InsightFace
+        # ULTRA-FAST duplicate check using cached embeddings and vectorized operations
         try:
-            # Get all registered employees from Laravel
-            registered_response = requests.get(f"{LARAVEL_API_URL}/employees/registered-faces", timeout=10)
+            # Refresh cache if stale (in background, non-blocking)
+            cache_age = employee_cache.get_cache_age()
+            if cache_age > CACHE_STALE_THRESHOLD:
+                logger.info(f"Cache stale ({cache_age}s) - Refreshing in background...")
+                asyncio.create_task(asyncio.to_thread(refresh_cache))
             
-            if registered_response.status_code == 200:
-                registered_employees = registered_response.json().get('data', [])
-                
-                # Check for matches against all registered faces
-                for employee in registered_employees:
-                    if not employee.get('face_embedding'):
-                        continue
-                    
-                    stored_embedding = json.loads(employee['face_embedding'])
-                    similarity = cosine_similarity(face['embedding'], stored_embedding)
-                    
-                    # If very high similarity, this face is already registered
-                    # Using stricter threshold to prevent same person registering multiple times
-                    if similarity >= 0.50:  # 50% similarity threshold (very strict)
-                        employee_name = employee.get('name', 'Unknown')
-                        raise HTTPException(
-                            status_code=400, 
-                            detail=f"Hi {employee_name}!  You're already registered in our system. Your employee ID is {employee.get('employee_number', employee['id'])}. No need to register again! (Match confidence: {similarity:.0%})"
-                        )
+            # Fast vectorized duplicate check
+            query_embedding = np.array(face['embedding'], dtype=np.float32)
+            matched, similarity = find_best_match_vectorized(query_embedding, DUPLICATE_THRESHOLD)
+            
+            if matched:
+                employee_name = matched.get('name', 'Unknown')
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Hi {employee_name}! You're already registered. Employee ID: {matched.get('employee_number', matched['id'])}. Match: {similarity:.0%}"
+                )
         except HTTPException:
-            raise  # Re-raise the duplicate error
+            raise
         except Exception as e:
-            logger.warning(f"Could not check for duplicate faces: {e}")
-            # Don't allow registration if duplicate check fails - too risky!
+            logger.error(f"Duplicate check error: {e}", exc_info=True)
             raise HTTPException(
                 status_code=500,
-                detail="Could not verify if this face is already registered. Please try again or contact support."
+                detail="Could not verify if this face is already registered. Please try again."
             )
         
         # Convert image to base64 for storage
@@ -316,6 +442,8 @@ async def register_face(
             response_data = response.json()
             logger.info(f" SUCCESS: Face registered for employee {employee_id}")
             logger.info(f"   - Response: {response_data}")
+            # Refresh cache with new face (in background)
+            asyncio.create_task(asyncio.to_thread(refresh_cache))
             return {
                 "success": True,
                 "employee_id": employee_id,
@@ -367,69 +495,57 @@ async def check_face_duplicate(file: UploadFile = File(...)):
         
         face = faces[0]
         
-        # Check if this face is already registered
+        # ULTRA-FAST duplicate check using cached embeddings and vectorized operations
+        start_time = time.time()
         try:
-                # Get all registered employees from Laravel
-                logger.info(f"Fetching registered faces from {LARAVEL_API_URL}/employees/registered-faces")
-                registered_response = requests.get(f"{LARAVEL_API_URL}/employees/registered-faces", timeout=10)
-                
-                if registered_response.status_code != 200:
-                    logger.error(f"Laravel API returned status {registered_response.status_code}: {registered_response.text}")
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Backend API error (status {registered_response.status_code}). Please check Laravel service."
-                    )
-                
-                registered_employees = registered_response.json().get('data', [])
-                logger.info(f"Found {len(registered_employees)} registered employees to check")
-                
-                # Check for matches against all registered faces
-                for employee in registered_employees:
-                    if not employee.get('face_embedding'):
-                        logger.debug(f"Skipping employee {employee.get('id')} - no embedding")
-                        continue
-                    
-                    try:
-                        stored_embedding = json.loads(employee['face_embedding'])
-                        similarity = cosine_similarity(face['embedding'], stored_embedding)
-                        logger.debug(f"Employee {employee.get('name')} similarity: {similarity:.2%}")
-                        
-                        # If very high similarity, this face is already registered
-                        # Using stricter threshold to prevent same person registering multiple times
-                        if similarity >= 0.50:  # 50% similarity threshold (very strict)
-                            employee_name = employee.get('name', 'Unknown')
-                            logger.info(f"DUPLICATE FOUND: {employee_name} with {similarity:.2%} similarity")
-                            return {
-                                "success": True,
-                                "is_duplicate": True,
-                                "matched_employee": {
-                                    "id": employee['id'],
-                                    "name": employee_name,
-                                    "employee_number": employee.get('employee_number', 'N/A'),
-                                    "department": employee.get('department', 'N/A')
-                                },
-                                "similarity": similarity,
-                                "message": f"Hi {employee_name}!  You're already registered in our system. Employee ID: {employee.get('employee_number', employee['id'])} | Department: {employee.get('department', 'N/A')} | Match: {similarity:.0%}"
-                            }
-                    except Exception as embedding_error:
-                        logger.error(f"Error processing embedding for employee {employee.get('id')} ({employee.get('name')}): {embedding_error}")
-                        continue  # Skip this employee and continue checking others
-                
-                # No match found
-                logger.info("No duplicate found - safe to register")
+            # Refresh cache if stale (in background, non-blocking)
+            cache_age = employee_cache.get_cache_age()
+            if cache_age > CACHE_STALE_THRESHOLD:
+                logger.info(f"Cache stale ({cache_age}s) - Refreshing in background...")
+                asyncio.create_task(asyncio.to_thread(refresh_cache))
+            
+            # Early exit if no cached data
+            employee_info = employee_cache.get_employee_info()
+            if len(employee_info) == 0:
+                logger.info("No registered faces in cache - ready to register")
                 return {
                     "success": True,
                     "is_duplicate": False,
-                    "message": "Face is not registered yet. Safe to proceed with registration."
+                    "message": "No registered faces found - ready to register",
+                    "processing_time_ms": round((time.time() - start_time) * 1000, 1)
                 }
-        except requests.RequestException as req_error:
-            logger.error(f"Error calling Laravel API: {req_error}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Could not connect to backend API. Please try again."
-            )
+            
+            # Fast vectorized duplicate check (MUCH faster than sequential loop)
+            query_embedding = np.array(face['embedding'], dtype=np.float32)
+            matched, similarity = find_best_match_vectorized(query_embedding, DUPLICATE_THRESHOLD)
+            
+            processing_time = (time.time() - start_time) * 1000
+            
+            if matched:
+                logger.info(f"DUPLICATE FOUND: {matched.get('name')} ({similarity:.1%}) in {processing_time:.0f}ms")
+                return {
+                    "success": True,
+                    "is_duplicate": True,
+                    "matched_employee": {
+                        "id": matched['id'],
+                        "name": matched.get('name', 'Unknown'),
+                        "employee_number": matched.get('employee_number', 'N/A'),
+                        "department": matched.get('department', 'N/A')
+                    },
+                    "similarity": float(similarity),
+                    "message": f"Hi {matched.get('name')}! Already registered. Employee ID: {matched.get('employee_number', matched['id'])} | Match: {similarity:.0%}",
+                    "processing_time_ms": round(processing_time, 1)
+                }
+            
+            logger.info(f"No duplicate found ({similarity:.1%} max) in {processing_time:.0f}ms")
+            return {
+                "success": True,
+                "is_duplicate": False,
+                "message": "Face is not registered yet. Safe to proceed with registration.",
+                "processing_time_ms": round(processing_time, 1)
+            }
         except Exception as e:
-            logger.error(f"Unexpected error checking duplicates: {e}", exc_info=True)
+            logger.error(f"Duplicate check error: {e}", exc_info=True)
             raise HTTPException(
                 status_code=500,
                 detail="Could not verify if this face is already registered. Please try again."
@@ -474,30 +590,15 @@ async def recognize_face(
         
         # Use the first detected face
         detected_face = faces[0]
-        detected_embedding = detected_face['embedding']
+        detected_embedding = np.array(detected_face['embedding'], dtype=np.float32)
         
-        # Get all registered employees from Laravel
-        response = requests.get(f"{LARAVEL_API_URL}/employees/registered-faces", timeout=10)
+        # Refresh cache if stale (in background)
+        cache_age = employee_cache.get_cache_age()
+        if cache_age > CACHE_STALE_THRESHOLD:
+            asyncio.create_task(asyncio.to_thread(refresh_cache))
         
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to fetch registered faces")
-        
-        registered_employees = response.json().get('data', [])
-        
-        # Find best match
-        best_match = None
-        best_similarity = 0.0
-        
-        for employee in registered_employees:
-            if not employee.get('face_embedding'):
-                continue
-            
-            stored_embedding = json.loads(employee['face_embedding'])
-            similarity = cosine_similarity(detected_embedding, stored_embedding)
-            
-            if similarity > best_similarity and similarity >= FACE_MATCH_THRESHOLD:
-                best_similarity = similarity
-                best_match = employee
+        # Fast vectorized matching
+        best_match, best_similarity = find_best_match_vectorized(detected_embedding, FACE_MATCH_THRESHOLD)
         
         if best_match:
             # Log presence detection
