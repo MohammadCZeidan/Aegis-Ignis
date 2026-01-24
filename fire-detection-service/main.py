@@ -404,7 +404,16 @@ class FireDetectionService:
         self.session = requests.Session()
         self.session.headers.update({'Content-Type': 'application/json'})
         self.detection_reporter = DetectionReporter(self.session)
-        self.alert_manager = alert_manager or AlertManager(n8n_webhook_url=os.getenv('N8N_WEBHOOK_URL'))
+        # Initialize AlertManager with N8N webhook URL
+        n8n_webhook_url = os.getenv('N8N_WEBHOOK_URL')
+        if n8n_webhook_url:
+            logger.info(f"✓ N8N webhook configured: {n8n_webhook_url}")
+        else:
+            logger.warning("⚠ N8N_WEBHOOK_URL not configured. N8N alerts will be disabled.")
+            logger.info("To enable N8N alerts, set N8N_WEBHOOK_URL in your .env file")
+            logger.info("Example: N8N_WEBHOOK_URL=http://localhost:5678/webhook/fire-alert")
+        
+        self.alert_manager = alert_manager or AlertManager(n8n_webhook_url=n8n_webhook_url)
         
     def initialize_camera(self, camera_id: int = 0) -> bool:
         """Initialize camera feed."""
@@ -534,13 +543,17 @@ class ServiceRunner:
             
             # Send WhatsApp alert with floor occupancy
             try:
+                # Use floor_id from config, or default to 3 (Third Floor) if None
+                floor_id = FireDetectionConfig.FLOOR_ID if FireDetectionConfig.FLOOR_ID is not None else 3
+                
                 # Get current floor occupancy
-                occupancy_data = self.fire_service.alert_manager.get_floor_occupancy(FireDetectionConfig.FLOOR_ID)
+                occupancy_data = self.fire_service.alert_manager.get_floor_occupancy(floor_id)
                 people_detected = occupancy_data.get('people_details', [])
                 people_count = len(people_detected)
                 
-                self.fire_service.alert_manager.send_fire_alert(
-                    floor_id=FireDetectionConfig.FLOOR_ID,
+                # Send alert via N8N webhook and Twilio WhatsApp
+                alert_sent = self.fire_service.alert_manager.send_fire_alert(
+                    floor_id=floor_id,
                     camera_id=FireDetectionConfig.CAMERA_ID,
                     camera_name=FireDetectionConfig.CAMERA_NAME or f"Camera {FireDetectionConfig.CAMERA_ID}",
                     room=FireDetectionConfig.ROOM_LOCATION or 'Unknown',
@@ -549,7 +562,22 @@ class ServiceRunner:
                     confidence=detection['confidence'],
                     severity='critical' if detection['confidence'] > 0.7 else 'warning'
                 )
-                logger.info(f"WhatsApp alert sent for fire on Floor {FireDetectionConfig.FLOOR_ID}")
+                
+                if alert_sent:
+                    logger.info(f"✓ Alert sent successfully (N8N/Twilio) for fire on Floor {floor_id}")
+                else:
+                    logger.warning(f"⚠ Alert sending failed - check N8N webhook and Twilio configuration")
+                
+                # Send CRITICAL evacuation alert if people present
+                if people_count > 0:
+                    critical_sent = self.fire_service.alert_manager.send_critical_evacuation_alert(
+                        floor_id=floor_id,
+                        camera_id=FireDetectionConfig.CAMERA_ID,
+                        people_count=people_count,
+                        fire_confidence=detection['confidence']
+                    )
+                    if critical_sent:
+                        logger.info(f"✓ Critical evacuation alert sent for {people_count} people on Floor {floor_id}")
             except Exception as e:
                 logger.error(f"Failed to send WhatsApp alert: {e}")
 
@@ -587,6 +615,47 @@ async def detect_fire(
         if detections:
             detection = detections[0]  # Take the first detection
             confidence = detection['confidence']
+            
+            # Send alerts if fire detected
+            if confidence >= FireDetectionConfig.CONFIDENCE_THRESHOLD:
+                try:
+                    # Use provided floor_id or fallback to config/default
+                    alert_floor_id = floor_id if floor_id is not None else (FireDetectionConfig.FLOOR_ID if FireDetectionConfig.FLOOR_ID is not None else 3)
+                    alert_camera_id = int(camera_id) if camera_id else FireDetectionConfig.CAMERA_ID
+                    alert_room = room_location if room_location else (FireDetectionConfig.ROOM_LOCATION or 'Unknown')
+                    
+                    # Get floor occupancy
+                    occupancy_data = fire_service.alert_manager.get_floor_occupancy(alert_floor_id)
+                    people_detected = occupancy_data.get('people_details', [])
+                    
+                    # Send alert via N8N webhook and Twilio WhatsApp
+                    alert_sent = fire_service.alert_manager.send_fire_alert(
+                        floor_id=alert_floor_id,
+                        camera_id=alert_camera_id,
+                        camera_name=FireDetectionConfig.CAMERA_NAME or f"Camera {alert_camera_id}",
+                        room=alert_room,
+                        people_detected=people_detected,
+                        fire_type='fire',
+                        confidence=confidence,
+                        severity='critical' if confidence > 0.7 else 'warning'
+                    )
+                    
+                    if alert_sent:
+                        logger.info(f"✓ Alert sent successfully (N8N/Twilio) for fire on Floor {alert_floor_id}")
+                    
+                    # Send CRITICAL evacuation alert if people present
+                    people_count = len(people_detected)
+                    if people_count > 0:
+                        critical_sent = fire_service.alert_manager.send_critical_evacuation_alert(
+                            floor_id=alert_floor_id,
+                            camera_id=alert_camera_id,
+                            people_count=people_count,
+                            fire_confidence=confidence
+                        )
+                        if critical_sent:
+                            logger.info(f"✓ Critical evacuation alert sent for {people_count} people")
+                except Exception as e:
+                    logger.error(f"Failed to send alert: {e}", exc_info=True)
             
             return {
                 "fire_detected": True,
