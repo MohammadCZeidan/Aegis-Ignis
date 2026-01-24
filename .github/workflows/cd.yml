@@ -16,9 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
-        run: docker compose version
-
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
@@ -33,244 +30,34 @@ jobs:
       - name: Add EC2 to known hosts
         run: ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy containers from DockerHub
+      - name: Deploy
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             set -e
+            DEPLOY_PATH="${DEPLOY_PATH:-$HOME/Aegis-IgnisGit}"
+            mkdir -p "$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
             
-            echo "Setting deployment path..."
-            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$DEPLOY_PATH" ]; then
-              DEPLOY_PATH="\$HOME/Aegis-IgnisGit"
-            fi
+            [ ! -d ".git" ] && git clone https://github.com/${{ github.repository }}.git . || git pull origin main || git pull origin master
             
-            echo "Deployment path: \$DEPLOY_PATH"
-            
-            echo "Creating directory if it doesn't exist..."
-            mkdir -p "\$DEPLOY_PATH"
-            
-            echo "Navigating to application directory..."
-            cd "\$DEPLOY_PATH"
-            
-            echo "Checking if git repository exists..."
-            if [ ! -d ".git" ]; then
-              echo "Git repository not found. Cloning repository..."
-              git clone https://github.com/${{ github.repository }}.git . || true
-            fi
-            
-            echo "Pulling latest code..."
-            git pull origin main || git pull origin master || true
-            
-            echo "Verifying docker-compose.yml exists..."
-            if [ ! -f "docker-compose.prod.yml" ]; then
-              echo "ERROR: docker-compose.prod.yml not found in \$DEPLOY_PATH"
-              echo "Current directory: \$(pwd)"
-              echo "Contents:"
-              ls -la
-              exit 1
-            fi
-            
-            echo "Checking if Docker is installed..."
-            if ! command -v docker &>/dev/null; then
-              echo "Docker not found! Installing Docker..."
-              # Update package index
-              sudo apt-get update -y
-              # Install prerequisites
-              sudo apt-get install -y ca-certificates curl gnupg lsb-release
-              # Add Docker's official GPG key
-              sudo mkdir -p /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              # Set up Docker repository
-              echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              # Install Docker Engine and Docker Compose plugin
-              sudo apt-get update -y
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-              # Start and enable Docker
-              sudo systemctl start docker
-              sudo systemctl enable docker
-              # Add current user to docker group (if not root)
-              if [ "\$USER" != "root" ]; then
-                sudo usermod -aG docker \$USER
-              fi
-              echo "Docker installed successfully!"
+            if docker ps &>/dev/null; then
+              DOCKER_CMD="docker"
             else
-              echo "Docker is already installed."
-              docker --version
+              DOCKER_CMD="sudo docker"
             fi
             
-            echo "Checking if Docker Compose is available..."
-            if ! docker compose version &>/dev/null; then
-              echo "Docker Compose plugin not found! Installing..."
-              sudo apt-get update -y
-              sudo apt-get install -y docker-compose-plugin
-            else
-              echo "Docker Compose is available."
-              docker compose version
-            fi
-            
-            # Check if we need to use sudo for docker commands
-            USE_SUDO=false
-            if ! docker ps &>/dev/null 2>&1; then
-              echo "Note: Using sudo for docker commands"
-              USE_SUDO=true
-            fi
-            
-            echo "Logging in to DockerHub..."
-            # Docker login - sudo requires the full command to be in the sudo context
-            if [ "$USE_SUDO" = "true" ]; then
-              # For sudo, pipe the token directly to the sudo docker login command
-              echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo sh -c "docker login -u '${{ secrets.DOCKERHUB_USERNAME }}' --password-stdin"
-            else
-              echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-            fi
-            
-            echo "Setting DockerHub username environment variable..."
             export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | $DOCKER_CMD login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
-            echo "Checking disk space before cleanup..."
-            df -h
+            $DOCKER_CMD compose -f docker-compose.prod.yml down || true
+            $DOCKER_CMD system prune -f || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker-compose.prod.yml pull
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker-compose.prod.yml up -d
             
-            echo "Stopping all running containers to free space..."
-            if [ "$USE_SUDO" = "true" ]; then
-              sudo docker compose -f docker-compose.prod.yml down || true
-              sudo docker stop \$(sudo docker ps -aq) 2>/dev/null || true
-            else
-              docker compose -f docker-compose.prod.yml down || true
-              docker stop \$(docker ps -aq) 2>/dev/null || true
-            fi
-            
-            echo "Aggressively cleaning up Docker resources..."
-            if [ "$USE_SUDO" = "true" ]; then
-              # Remove all stopped containers
-              sudo docker container prune -f || true
-              # Remove ALL unused images (including tagged ones)
-              sudo docker image prune -a -f || true
-              # Remove unused volumes
-              sudo docker volume prune -f || true
-              # Remove build cache
-              sudo docker builder prune -a -f || true
-              # Remove dangling images
-              sudo docker image prune -f || true
-              # System prune (everything unused)
-              sudo docker system prune -a -f --volumes || true
-            else
-              # Remove all stopped containers
-              docker container prune -f || true
-              # Remove ALL unused images (including tagged ones)
-              docker image prune -a -f || true
-              # Remove unused volumes
-              docker volume prune -f || true
-              # Remove build cache
-              docker builder prune -a -f || true
-              # Remove dangling images
-              docker image prune -f || true
-              # System prune (everything unused)
-              docker system prune -a -f --volumes || true
-            fi
-            
-            echo "Checking disk space after cleanup..."
-            df -h
-            
-            # Check if we have enough space (at least 1GB free)
-            AVAILABLE_SPACE=\$(df / | tail -1 | awk '{print \$4}')
-            if [ "\$AVAILABLE_SPACE" -lt 1048576 ]; then
-              echo "WARNING: Low disk space (\$AVAILABLE_SPACE KB available). Attempting additional cleanup..."
-              # Remove old logs
-              sudo journalctl --vacuum-time=7d 2>/dev/null || true
-              sudo apt-get clean 2>/dev/null || true
-              sudo apt-get autoremove -y 2>/dev/null || true
-              df -h
-            fi
-            
-            echo "Pulling latest images from DockerHub..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml pull
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml pull
-            fi
-            
-            echo "Stopping existing containers..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml down || true
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml down || true
-            fi
-            
-            echo "Starting containers with latest images..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml up -d
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml up -d
-            fi
-            
-            echo "Waiting for PostgreSQL to be ready..."
-            if [ "$USE_SUDO" = "true" ]; then
-              timeout 60 bash -c 'until sudo docker compose -f docker-compose.prod.yml exec -T db pg_isready -U postgres; do sleep 2; done' || true
-            else
-              timeout 60 bash -c 'until docker compose -f docker-compose.prod.yml exec -T db pg_isready -U postgres; do sleep 2; done' || true
-            fi
+            timeout 60 bash -c "until $DOCKER_CMD compose -f docker-compose.prod.yml exec -T db pg_isready -U postgres; do sleep 2; done" || true
             sleep 5
             
-            echo "Running migrations..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
-            fi
-            
-            echo "Clearing and optimizing caches..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml exec backend php artisan optimize:clear || true
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml exec backend php artisan optimize || true
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml exec backend php artisan optimize:clear || true
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml exec backend php artisan optimize || true
-            fi
-            
-            echo "Checking container status..."
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml ps
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml ps
-            fi
-            
-            echo "Deployment completed successfully!"
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker-compose.prod.yml run --rm backend php artisan migrate --force || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker-compose.prod.yml exec backend php artisan optimize:clear || true
+            DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker-compose.prod.yml exec backend php artisan optimize || true
           EOF
-
-      - name: Verify Deployment
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
-            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$DEPLOY_PATH" ]; then
-              DEPLOY_PATH="\$HOME/Aegis-IgnisGit"
-            fi
-            
-            # Check if we need to use sudo for docker commands
-            USE_SUDO=false
-            if ! docker ps &>/dev/null 2>&1; then
-              USE_SUDO=true
-            fi
-            
-            echo "Verifying containers are running..."
-            cd "\$DEPLOY_PATH"
-            if [ "$USE_SUDO" = "true" ]; then
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" sudo docker compose -f docker-compose.prod.yml ps
-            else
-              DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" docker compose -f docker-compose.prod.yml ps
-            fi
-            echo "All containers should be in 'Up' status"
-          EOF
-
-      - name: Deployment Summary
-        if: success()
-        run: |
-          echo " Deployment completed successfully!"
-          echo "- Images pulled from DockerHub"
-          echo "- Containers started with docker compose"
-          echo "- Migrations executed"
-          echo "- Caches optimized"
-
-      - name: Notify on Failure
-        if: failure()
-        run: |
-          echo " Deployment failed! Please check the logs above."
