@@ -53,6 +53,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isDetectingRef = useRef<boolean>(false); // Prevent concurrent requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     initCamera();
@@ -127,7 +129,14 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
     }
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
+      detectionIntervalRef.current = null;
     }
+    // Cancel any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    isDetectingRef.current = false;
   };
 
   const startFaceDetection = () => {
@@ -135,7 +144,17 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       clearInterval(detectionIntervalRef.current);
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     detectionIntervalRef.current = setInterval(async () => {
+      // Skip if already processing a request
+      if (isDetectingRef.current) {
+        return;
+      }
+
       if (!videoRef.current || !canvasRef.current || !overlayCanvasRef.current) return;
       if (videoRef.current.paused || videoRef.current.ended) return;
 
@@ -148,6 +167,12 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
       canvas.toBlob(async (blob) => {
         if (!blob) return;
 
+        // Set flag to prevent concurrent requests
+        isDetectingRef.current = true;
+        
+        // Create abort controller for this request
+        abortControllerRef.current = new AbortController();
+
         try {
           const formData = new FormData();
           formData.append('file', blob);
@@ -155,7 +180,8 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           const FACE_SERVICE_URL = import.meta.env.VITE_FACE_SERVICE_URL || 'http://localhost:8001';
           const response = await fetch(`${FACE_SERVICE_URL}/detect-faces`, {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: abortControllerRef.current.signal
           });
 
           if (response.ok) {
@@ -164,11 +190,19 @@ export function FaceRegistration({ onLogout }: FaceRegistrationProps) {
           } else {
             console.error('Face detection failed:', response.status, response.statusText);
           }
-        } catch (err) {
+        } catch (err: any) {
+          // Ignore abort errors
+          if (err.name === 'AbortError') {
+            return;
+          }
           console.error('Face detection error:', err);
+        } finally {
+          // Reset flag after request completes
+          isDetectingRef.current = false;
+          abortControllerRef.current = null;
         }
       }, 'image/jpeg', 0.7);
-    }, 300);
+    }, 1000); // Increased from 300ms to 1000ms (1 second) to reduce load
   };
 
   const drawFaceDetection = (result: FaceDetectionResult) => {

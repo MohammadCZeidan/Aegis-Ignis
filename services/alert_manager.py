@@ -41,18 +41,45 @@ class AlertManager:
         self.twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
         self.twilio_from = os.getenv('TWILIO_WHATSAPP_FROM')
         self.twilio_to = os.getenv('TWILIO_WHATSAPP_TO')
+        self.twilio_phone_from = os.getenv('TWILIO_PHONE_FROM')  # For voice calls
+        self.twilio_phone_to = os.getenv('TWILIO_PHONE_TO')  # For voice calls
         
         # Initialize Twilio client
         self.twilio_client = None
         if TWILIO_AVAILABLE and self.twilio_sid and self.twilio_token:
             try:
                 self.twilio_client = TwilioClient(self.twilio_sid, self.twilio_token)
-                logger.info("Twilio WhatsApp client initialized")
+                logger.info("✓ Twilio WhatsApp client initialized")
+                if not self.twilio_from:
+                    logger.warning("⚠ TWILIO_WHATSAPP_FROM not configured - WhatsApp messages will fail")
+                elif not self.twilio_from.startswith('whatsapp:+'):
+                    logger.warning(f"⚠ Invalid TWILIO_WHATSAPP_FROM format: {self.twilio_from}. Must start with 'whatsapp:+'")
+                if not self.twilio_to:
+                    logger.warning("⚠ TWILIO_WHATSAPP_TO not configured - WhatsApp messages will fail")
+                elif not self.twilio_to.startswith('whatsapp:+'):
+                    logger.warning(f"⚠ Invalid TWILIO_WHATSAPP_TO format: {self.twilio_to}. Must start with 'whatsapp:+'")
+                if not self.twilio_phone_from:
+                    logger.warning("⚠ TWILIO_PHONE_FROM not configured - Voice calls will fail")
+                if not self.twilio_phone_to:
+                    logger.warning("⚠ TWILIO_PHONE_TO not configured - Voice calls will fail")
             except Exception as e:
                 logger.error(f"Failed to initialize Twilio: {e}")
+        else:
+            if not TWILIO_AVAILABLE:
+                logger.warning(" Twilio library not installed. Install with: pip install twilio")
+            elif not self.twilio_sid:
+                logger.warning(" TWILIO_ACCOUNT_SID not configured - WhatsApp alerts will be disabled")
+            elif not self.twilio_token:
+                logger.warning("⚠ TWILIO_AUTH_TOKEN not configured - WhatsApp alerts will be disabled")
+            logger.info("To enable Twilio WhatsApp alerts, set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM, and TWILIO_WHATSAPP_TO in your .env file")
+            logger.info("To enable Twilio Voice calls, also set TWILIO_PHONE_FROM and TWILIO_PHONE_TO in your .env file")
         
         if not self.n8n_webhook_url:
             logger.warning("N8N_WEBHOOK_URL not configured. N8N alerts will be disabled.")
+            logger.info("To enable N8N alerts, set N8N_WEBHOOK_URL in your .env file")
+            logger.info("Example: N8N_WEBHOOK_URL=http://localhost:5678/webhook/fire-alert")
+        else:
+            logger.info(f"✓ N8N webhook configured: {self.n8n_webhook_url}")
     
     def send_fire_alert(
         self, 
@@ -137,10 +164,25 @@ class AlertManager:
         if whatsapp_success:
                 logger.info(f"WhatsApp alert sent successfully for Floor {floor_id}")
         
+        # Send voice call for critical alerts or when people are present
+        voice_success = False
+        if severity == "critical" or people_count > 0:
+            logger.info(f"Attempting to send voice call alert for Floor {floor_id}")
+            voice_success = self._send_voice_call_alert(
+                floor_id=floor_id,
+                room=room,
+                fire_type=fire_type,
+                confidence=confidence,
+                people_count=people_count,
+                severity=severity
+            )
+            if voice_success:
+                logger.info(f"Voice call alert sent successfully for Floor {floor_id}")
+        
         # Also log to backend (existing system)
         backend_success = self._log_to_backend(alert_data)
         
-        return n8n_success or whatsapp_success or backend_success
+        return n8n_success or whatsapp_success or voice_success or backend_success
     
     def send_presence_update(
         self, 
@@ -219,7 +261,19 @@ class AlertManager:
             "trigger_sms": True
         }
         
-        return self._send_to_n8n(alert_data)
+        n8n_success = self._send_to_n8n(alert_data)
+        
+        # Also send direct Twilio voice call
+        voice_success = self._send_voice_call_alert(
+            floor_id=floor_id,
+            room=f"Floor {floor_id}",
+            fire_type="fire",
+            confidence=fire_confidence,
+            people_count=people_count,
+            severity="critical"
+        )
+        
+        return n8n_success or voice_success
     
     def _send_whatsapp_alert(
         self,
@@ -245,7 +299,24 @@ class AlertManager:
             True if sent successfully
         """
         if not self.twilio_client:
-            logger.debug("Twilio not configured, skipping WhatsApp alert")
+            logger.warning("Twilio client not initialized - skipping WhatsApp alert")
+            return False
+        
+        if not self.twilio_from:
+            logger.error("TWILIO_WHATSAPP_FROM not configured - cannot send WhatsApp message")
+            return False
+        
+        if not self.twilio_to:
+            logger.error("TWILIO_WHATSAPP_TO not configured - cannot send WhatsApp message")
+            return False
+        
+        # Validate phone number formats
+        if not self.twilio_from.startswith('whatsapp:+'):
+            logger.error(f"Invalid TWILIO_WHATSAPP_FROM format: {self.twilio_from}. Must start with 'whatsapp:+'")
+            return False
+        
+        if not self.twilio_to.startswith('whatsapp:+'):
+            logger.error(f"Invalid TWILIO_WHATSAPP_TO format: {self.twilio_to}. Must start with 'whatsapp:+'")
             return False
         
         try:
@@ -272,17 +343,131 @@ class AlertManager:
             message_body += "*Immediate action required!*"
             
             # Send WhatsApp message
+            logger.info(f"Sending WhatsApp message from {self.twilio_from} to {self.twilio_to}")
             message = self.twilio_client.messages.create(
                 from_=self.twilio_from,
                 to=self.twilio_to,
                 body=message_body
             )
             
-            logger.info(f" WhatsApp alert sent - SID: {message.sid}")
+            # Check message status - Twilio returns immediately but message might fail
+            message_status = message.status
+            logger.info(f"Twilio message created - SID: {message.sid}, Status: {message_status}")
+            
+            # Check for immediate failure statuses
+            if message_status in ['failed', 'undelivered', 'canceled']:
+                logger.error(f"✗ WhatsApp message failed with status: {message_status}")
+                if hasattr(message, 'error_code') and message.error_code:
+                    logger.error(f"Error code: {message.error_code}, Error message: {message.error_message}")
+                return False
+            
+            # Status might be 'queued', 'sending', or 'sent' - all are acceptable initially
+            if message_status in ['queued', 'sending', 'sent']:
+                logger.info(f"✓ WhatsApp alert sent successfully - SID: {message.sid}, Status: {message_status}")
+                
+                # Log important note about WhatsApp delivery
+                if message_status == 'queued':
+                    logger.info("ℹ Message is queued. Delivery depends on recipient's WhatsApp opt-in status.")
+                    logger.info("ℹ If recipient hasn't sent you a message first, WhatsApp may not deliver the message.")
+                
+                return True
+            else:
+                logger.warning(f"⚠ WhatsApp message in unknown status: {message_status} - SID: {message.sid}")
+                # Still return True as message was created, but log warning
+                return True
+            
+        except Exception as e:
+            logger.error(f"✗ Failed to send WhatsApp alert: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Check for common Twilio errors
+            error_str = str(e).lower()
+            if 'not a valid' in error_str or 'invalid' in error_str:
+                logger.error("⚠ Invalid phone number format. Check TWILIO_WHATSAPP_FROM and TWILIO_WHATSAPP_TO")
+                logger.error("⚠ WhatsApp numbers must be in format: whatsapp:+1234567890")
+            elif 'authentication' in error_str or 'credentials' in error_str:
+                logger.error("⚠ Twilio authentication failed. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN")
+            elif 'whatsapp' in error_str or 'not approved' in error_str:
+                logger.error("⚠ WhatsApp-specific error. Ensure:")
+                logger.error("   1. Your Twilio account has WhatsApp enabled")
+                logger.error("   2. Your WhatsApp number is approved in Twilio console")
+                logger.error("   3. The recipient has sent you a message first (WhatsApp opt-in required)")
+            elif 'permission' in error_str or 'unauthorized' in error_str:
+                logger.error("⚠ Permission denied. Check Twilio account permissions and WhatsApp approval status.")
+            
+            return False
+    
+    def _send_voice_call_alert(
+        self,
+        floor_id: int,
+        room: str,
+        fire_type: str,
+        confidence: float,
+        people_count: int,
+        severity: str
+    ) -> bool:
+        """
+        Send fire alert via Twilio voice call
+        
+        Args:
+            floor_id: Floor number
+            room: Room location
+            fire_type: Type of fire (fire/smoke)
+            confidence: Detection confidence (0-1)
+            people_count: Number of people on floor
+            severity: Alert severity
+            
+        Returns:
+            True if sent successfully
+        """
+        if not self.twilio_client:
+            logger.warning("Twilio client not initialized - skipping voice call")
+            return False
+        
+        if not self.twilio_phone_from:
+            logger.warning("TWILIO_PHONE_FROM not configured - cannot make voice call")
+            return False
+        
+        if not self.twilio_phone_to:
+            logger.warning("TWILIO_PHONE_TO not configured - cannot make voice call")
+            return False
+        
+        try:
+            from twilio.twiml.voice_response import VoiceResponse
+            
+            # Create TwiML for voice message
+            response = VoiceResponse()
+            
+            # Build the message
+            message_text = (
+                f"Emergency alert! Fire detected on floor {floor_id}, {room}. "
+                f"Type: {fire_type.upper()}. "
+                f"Confidence: {confidence*100:.0f} percent. "
+            )
+            
+            if people_count > 0:
+                message_text += f"URGENT: {people_count} people need evacuation! "
+            
+            message_text += "Please evacuate immediately and call 911."
+            
+            response.say(message_text, voice='alice', language='en-US')
+            
+            # Make the call
+            logger.info(f"Making voice call from {self.twilio_phone_from} to {self.twilio_phone_to}")
+            call = self.twilio_client.calls.create(
+                twiml=str(response),
+                to=self.twilio_phone_to,
+                from_=self.twilio_phone_from
+            )
+            
+            logger.info(f"✓ Voice call initiated successfully - Call SID: {call.sid}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to send WhatsApp alert: {e}")
+            logger.error(f"✗ Failed to make voice call: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
     
     def _send_to_n8n(self, alert_data: Dict) -> bool:

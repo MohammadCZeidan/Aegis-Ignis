@@ -211,24 +211,30 @@ def send_fire_alert_async(camera_id: int, frame, detection_result: dict):
         floor_id = cam_config.get('floor_id', FLOOR_ID) if cam_config else FLOOR_ID
         room = cam_config.get('room', ROOM) if cam_config else ROOM
         
-        # Get people count
-        people_count = alert_manager.get_floor_occupancy(floor_id)
+        # Get people count and details
+        occupancy_data = alert_manager.get_floor_occupancy(floor_id)
+        people_detected = occupancy_data.get('people_details', [])
+        people_count = occupancy_data.get('people_count', 0)
         
         # Send N8N alert
         if N8N_WEBHOOK_URL:
             alert_manager.send_fire_alert(
-                camera_id=camera_id,
                 floor_id=floor_id,
-                screenshot_base64=screenshot_base64,
-                people_count=people_count,
-                fire_confidence=confidence
+                camera_id=camera_id,
+                camera_name=f"Camera {camera_id}",
+                room=room,
+                people_detected=people_detected,
+                fire_type=fire_type,
+                confidence=confidence,
+                severity="critical" if confidence > 0.8 else "high" if confidence > 0.6 else "medium"
             )
             
             if people_count > 0:
                 alert_manager.send_critical_evacuation_alert(
                     floor_id=floor_id,
                     people_count=people_count,
-                    camera_id=camera_id
+                    camera_id=camera_id,
+                    fire_confidence=confidence
                 )
         
         # Send to Laravel backend
@@ -396,18 +402,23 @@ async def detect_fire_ml(
             screenshot_base64 = base64.b64encode(cv2.imencode('.jpg', annotated_frame)[1]).decode('utf-8')
             logger.info("📸 Screenshot captured and encoded")
             
-            # Get people count from backend
-            people_count = alert_manager.get_floor_occupancy(floor_id)
+            # Get people count and details from backend
+            occupancy_data = alert_manager.get_floor_occupancy(floor_id)
+            people_detected = occupancy_data.get('people_details', [])
+            people_count = occupancy_data.get('people_count', 0)
             
             # Send N8N alert if configured
             n8n_success = False
             if N8N_WEBHOOK_URL:
                 n8n_success = alert_manager.send_fire_alert(
-                    camera_id=camera_id,
                     floor_id=floor_id,
-                    screenshot_base64=screenshot_base64,
-                    people_count=people_count,
-                    fire_confidence=confidence
+                    camera_id=camera_id,
+                    camera_name=f"Camera {camera_id}",
+                    room=ROOM,
+                    people_detected=people_detected,
+                    fire_type=fire_type,
+                    confidence=confidence,
+                    severity="critical" if confidence > 0.8 else "high" if confidence > 0.6 else "medium"
                 )
                 
                 if n8n_success:
@@ -418,7 +429,8 @@ async def detect_fire_ml(
                         alert_manager.send_critical_evacuation_alert(
                             floor_id=floor_id,
                             people_count=people_count,
-                            camera_id=camera_id
+                            camera_id=camera_id,
+                            fire_confidence=confidence
                         )
                         logger.warning(f" CRITICAL: {people_count} people on floor during fire!")
             
