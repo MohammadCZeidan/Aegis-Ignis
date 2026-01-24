@@ -8,21 +8,34 @@ import {
   RefreshControl,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import api, {Alert} from '../services/api';
+import api, {Alert as AlertType} from '../services/api';
 import {getStorageUrl} from '../config/api';
 
 const AlertsScreen: React.FC = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadAlerts = async () => {
     try {
+      setError(null);
+      console.log('Loading alerts...');
       const data = await api.getAlerts({limit: 50});
-      setAlerts(data);
-    } catch (error) {
+      console.log('Alerts loaded:', data);
+      setAlerts(Array.isArray(data) ? data : []);
+    } catch (error: any) {
       console.error('Error loading alerts:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load alerts';
+      setError(errorMessage);
+      Alert.alert(
+        'Error Loading Alerts',
+        errorMessage + '\n\nStatus: ' + (error.response?.status || 'Unknown'),
+        [{text: 'OK'}]
+      );
+      setAlerts([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -51,7 +64,7 @@ const AlertsScreen: React.FC = () => {
     }
   };
 
-  const renderAlert = ({item}: {item: Alert}) => (
+  const renderAlert = ({item}: {item: AlertType}) => (
     <TouchableOpacity style={styles.alertCard}>
       <View style={styles.alertHeader}>
         <View style={styles.alertInfo}>
@@ -106,7 +119,16 @@ const AlertsScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
       ListEmptyComponent={
-        <Text style={styles.emptyText}>No alerts found</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {error ? `Error: ${error}` : 'No alerts found'}
+          </Text>
+          {error && (
+            <TouchableOpacity style={styles.retryButton} onPress={loadAlerts}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       }
     />
   );
@@ -185,11 +207,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e40af',
   },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
   emptyText: {
     textAlign: 'center',
     color: '#9ca3af',
-    padding: 40,
     fontSize: 16,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#1e40af',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

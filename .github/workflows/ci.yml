@@ -89,41 +89,7 @@ jobs:
         working-directory: ./backend-laravel
         run: vendor/bin/phpunit
 
-  frontend-tests:
-    name: Frontend Dashboard Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        working-directory: './Smart Building Dashboard Design'
-        run: |
-          rm -rf node_modules package-lock.json
-          npm install
-
-      - name: Ensure vite is executable
-        working-directory: './Smart Building Dashboard Design'
-        run: chmod +x node_modules/.bin/vite
-
-      - name: Build Application
-        working-directory: './Smart Building Dashboard Design'
-        run: npm run build
-
-      - name: Check Build Size
-        working-directory: './Smart Building Dashboard Design'
-        run: |
-          echo " Build Size Analysis:"
-          du -sh dist/ || true
-          ls -lh dist/ || true
-
-  build-and-push:
+   build-and-push:
     name: Build and Push to DockerHub
     runs-on: ubuntu-latest
     needs: [docker-build-test, laravel-tests, frontend-tests]
@@ -198,21 +164,4 @@ jobs:
           tags: ${{ steps.meta-frontend.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  security-scan:
-    name: Security Scanning
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '0'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+ 

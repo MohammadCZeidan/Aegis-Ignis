@@ -51,3 +51,4 @@ logger.info("=" * 60)
 if __name__ == "__main__":
     logger.info(f"Starting Fire Detection Service on port {Config.PORT}...")
     uvicorn.run(app, host="0.0.0.0", port=Config.PORT)
+g
