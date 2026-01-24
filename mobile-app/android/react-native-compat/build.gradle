@@ -1,0 +1,22 @@
+plugins {
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace "com.facebook.react"
+    
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation("com.facebook.react:react-android")
+}
