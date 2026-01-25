@@ -47,11 +47,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity-based routing
 -Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation
 <br><br>
+<img src="./readme/sql/demo.png"/>
 
 <!-- Demo -->
 <img src="./readme/card-titles/title5.svg"/>
 
-### System Screenshots
+### System Screenshotsw
 
 | Dashboard Overview | Floor Monitoring | Camera Management |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
