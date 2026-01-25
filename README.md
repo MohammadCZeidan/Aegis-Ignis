@@ -51,13 +51,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### System Screenshots
 
-| Dashboard Overview | Floor Monitoring | Camera Management |
-| --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| ![Dashboard](./readme/gif/Dashboard.gif) | *Coming Soon* | *Coming Soon* |
+| Dashboard Overview |  Camera Management |
+| --------------------------------------- |  ------------------------------------- |
+| ![Dashboard](./readme/gif/Dashboard.gif)  | ![Dashboard](./readme/gif/Camera-settings.gif) |
 
 | Fire Alerts | Employee Management | Face Registration |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| *Coming Soon* |![Face Registration](./readme/sql/Employees.png) | ![Face Registration](./readme/gif/face-recognizatipn.gif) |
+| ![Alerts](./readme/gif/alerts.gif) |![Face Registration](./readme/sql/Employees.png) | ![Face Registration](./readme/gif/face-recognizatipn.gif) |
 
 <br><br>
 
