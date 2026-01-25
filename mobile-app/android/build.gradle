@@ -4,10 +4,10 @@ buildscript {
     ext {
         buildToolsVersion = "34.0.0"
         minSdkVersion = 23
-        compileSdkVersion = 34
-        targetSdkVersion = 34
+        compileSdkVersion = 35
+        targetSdkVersion = 35
         ndkVersion = "25.1.8937393"
-        kotlinVersion = "1.9.0"
+        kotlinVersion = "1.9.22"
     }
     repositories {
         google()
@@ -39,5 +39,31 @@ allprojects {
         }
         google()
         maven { url 'https://www.jitpack.io' }
+    }
+}
+
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+            }
+        }
+        
+        // Fix for React Native modules that can't find BaseReactPackage and codegen interfaces
+        // Add compatibility module to React Native library modules
+        if (project.plugins.hasPlugin("com.android.library") && project.path != ":react-native-compat") {
+            def isReactNativeModule = project.path.contains("react-native") || 
+                                     project.name.contains("react-native") ||
+                                     project.projectDir.path.contains("react-native")
+            
+            if (isReactNativeModule) {
+                def compatProject = rootProject.findProject(":react-native-compat")
+                // Add compatibility module for BaseReactPackage and ViewManagerWithGeneratedInterface
+                if (compatProject != null) {
+                    project.dependencies.add("implementation", compatProject)
+                }
+            }
+        }
     }
 }
