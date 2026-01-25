@@ -53,7 +53,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 | Dashboard Overview | Login Overview |  Camera Management |
 | ---------------------------------------| --------------------------------------- |  ------------------------------------- |
-| ![Dashboard](./readme/gif/Dashboard.gif) | ![Dashboard](./readme/gif/login.gif)  | ![camera](./readme/gif/Camera-settings.gif) |
+| ![Dashboard](./readme/gif/Dashboard.gif) | ![Login](./readme/gif/login.gif)  | ![Camera](./readme/gif/Camera-settings.gif) |
 
 | Fire Alerts | Employee Management | Face Registration |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
@@ -64,53 +64,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <!-- Development & Testing -->
 <img src="./readme/card-titles/title6.svg"/>
 
-### Development Setup
-
-#### Prerequisites
-- PHP 8.1+ with Composer
-- Python 3.10+
-- PostgreSQL 14+
-- Node.js 18+ with npm
-- Docker (optional, for PostgreSQL)
-
-#### Quick Start
-
-```bash
-# Clone repository
-git clone <repository-url>
-cd Aegis-IgnisGit
-
-# Start all services (Windows)
-START-ALL.bat
-
-# Or start manually:
-# 1. Start Laravel backend
-cd backend-laravel
-composer install
-php artisan migrate
-php artisan serve
-
-# 2. Start Face Recognition Service
-cd python-face-service
-pip install -r requirements.txt
-python main_fast.py
-
-# 3. Start Fire Detection Service
-cd fire-detection-service
-pip install -r requirements.txt
-python main.py
-
-# 4. Start Frontend Dashboard
-cd "Smart Building Dashboard Design"
-npm install
-npm run dev
-```
-
-### Testing
+### Tests
 
 | CI/CD Pipeline | Test Coverage |
 | --------------------------------------- | ------------------------------------- |
-| *GitHub Actions* | *Laravel PHPUnit Tests* |
+| ![CI/CD](./readme/sql/CiCd.png) | ![CI/CD](./readme/sql/tests.png) |
 
 - **Backend tests**: `cd backend-laravel && php artisan test`
 - **Python services**: Unit tests for ML models and detection algorithms
