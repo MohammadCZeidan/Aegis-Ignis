@@ -1,7 +1,6 @@
 <img src="./readme/card-titles/title1.svg"/>
 
 <br><br>
-
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,12 +8,10 @@
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 <br><br>
-
-
 <!-- project overview -->
 <img src="./readme/card-titles/title2.svg"/>
 
-> Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring 
+> Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring <br>
 >The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
 
 <br><br>
@@ -42,21 +39,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Core Features
 
--ML: YOLOv8-based fire and smoke detection.
--Face Recognition: Fast employee identification using InsightFace embeddings. 
--Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity-based routing
--Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation
+-ML: YOLOv8-based fire and smoke detection.<br>
+-Face Recognition: Fast employee identification using InsightFace embeddings. <br>
+-Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity-based routing<br>
+-Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation<br>
 <br><br>
 <img src="./readme/sql/demo.png"/>
 
 <!-- Demo -->
 <img src="./readme/card-titles/title5.svg"/>
 
-### System Screenshotsw
+### System Screenshots
 
 | Dashboard Overview | Floor Monitoring | Camera Management |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| ![Dashboard](./readme/demo/1440x1024.png) | *Coming Soon* | *Coming Soon* |
+| ![Dashboard](./readme/gif/Dashboard.gif) | *Coming Soon* | *Coming Soon* |
 
 | Fire Alerts | Employee Management | Face Registration |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |

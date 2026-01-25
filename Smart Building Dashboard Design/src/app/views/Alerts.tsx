@@ -173,12 +173,12 @@ export function Alerts() {
                   </Badge>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {floorAlerts.map((alert) => (
                     <Card key={alert.id} className={`overflow-hidden ${alert.status === 'active' ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}>
                       {/* Screenshot */}
                       {(alert.image || alert.screenshot_path) && (
-                        <div className="relative bg-slate-900 aspect-video">
+                        <div className="relative bg-slate-900 w-full aspect-video">
                           <img 
                             src={alert.image ? `data:image/jpeg;base64,${alert.image}` : `${LARAVEL_BASE_URL}${alert.screenshot_path}`}
                             alt="Fire detection"
@@ -191,47 +191,47 @@ export function Alerts() {
                               target.style.display = 'none';
                             }}
                           />
-                          <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold">
-                            FIRE DETECTED
+                          <div className="absolute top-1 left-1 bg-red-600 text-white px-1.5 py-0.5 rounded text-xs font-semibold">
+                            FIRE
                           </div>
                         </div>
                       )}
                       
                       {/* Alert Details */}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Flame className={`h-5 w-5 ${alert.status === 'active' ? 'text-red-600' : 'text-orange-500'}`} />
+                      <div className="p-2">
+                        <div className="flex items-start justify-between mb-1.5">
+                          <div className="flex items-center gap-1">
+                            <Flame className={`h-3 w-3 ${alert.status === 'active' ? 'text-red-600' : 'text-orange-500'}`} />
                             <div>
-                              <h3 className="font-semibold text-slate-900">{alert.camera_name}</h3>
-                              <p className="text-sm text-slate-600">{alert.room}</p>
+                              <h3 className="font-semibold text-slate-900 text-xs leading-tight">{alert.camera_name}</h3>
+                              <p className="text-xs text-slate-600 leading-tight">{alert.room}</p>
                             </div>
                           </div>
-                          <Badge variant={alert.status === 'active' ? 'destructive' : 'secondary'}>
+                          <Badge variant={alert.status === 'active' ? 'destructive' : 'secondary'} className="text-xs px-1.5 py-0 h-5">
                             {alert.status}
                           </Badge>
                         </div>
                         
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <Camera className="h-4 w-4" />
-                            <span>Camera: {alert.camera_id}</span>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center gap-1 text-slate-600">
+                            <Camera className="h-3 w-3" />
+                            <span>Cam: {alert.camera_id}</span>
                           </div>
                           
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <Clock className="h-4 w-4" />
-                            <span>{new Date(alert.detected_at || alert.created_at).toLocaleString()}</span>
+                          <div className="flex items-center gap-1 text-slate-600">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-xs">{new Date(alert.detected_at || alert.created_at).toLocaleString()}</span>
                           </div>
                           
-                          <div className="flex items-center justify-between pt-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-700 font-medium">Confidence:</span>
-                              <Badge variant={alert.confidence > 0.7 ? 'destructive' : 'secondary'}>
+                          <div className="flex items-center justify-between pt-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-700 font-medium text-xs">Conf:</span>
+                              <Badge variant={alert.confidence > 0.7 ? 'destructive' : 'secondary'} className="text-xs px-1.5 py-0 h-5">
                                 {Math.round(alert.confidence * 100)}%
                               </Badge>
                             </div>
                             
-                            <Badge variant="outline" className="capitalize">
+                            <Badge variant="outline" className="capitalize text-xs px-1.5 py-0 h-5">
                               {alert.severity}
                             </Badge>
                           </div>
@@ -241,11 +241,11 @@ export function Alerts() {
                           <Button 
                             variant="destructive" 
                             size="sm" 
-                            className="w-full mt-4"
+                            className="w-full mt-2 h-7 text-xs px-2"
                             onClick={() => acknowledgeAlert(alert.id)}
                           >
-                            <AlertTriangle className="h-4 w-4 mr-2" />
-                            Acknowledge Alert
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Acknowledge
                           </Button>
                         )}
                       </div>
