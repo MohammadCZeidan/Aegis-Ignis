@@ -33,7 +33,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### n8n
 <img src="./readme/sql/n8n-workflow.png"/>
-<br><br>dw
+<br><br>
 <!-- Project Highlights -->
 <img src="./readme/card-titles/title4.svg"/>
 
