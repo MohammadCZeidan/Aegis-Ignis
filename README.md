@@ -51,9 +51,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### System Screenshots
 
-| Dashboard Overview |  Camera Management |
-| --------------------------------------- |  ------------------------------------- |
-| ![Dashboard](./readme/gif/Dashboard.gif)  | ![Dashboard](./readme/gif/Camera-settings.gif) |
+| Dashboard Overview | Login Overview |  Camera Management |
+| ---------------------------------------| --------------------------------------- |  ------------------------------------- |
+| ![Dashboard](./readme/gif/Dashboard.gif) | ![Dashboard](./readme/gif/login.gif)  | ![camera](./readme/gif/Camera-settings.gif) |
 
 | Fire Alerts | Employee Management | Face Registration |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
