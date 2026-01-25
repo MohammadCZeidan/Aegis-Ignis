@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Switch,
+  Alert,
 } from 'react-native';
 import api, {Camera} from '../services/api';
 
@@ -15,13 +16,47 @@ const CamerasScreen: React.FC = () => {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadCameras = async () => {
     try {
+      setError(null);
+      console.log('[CamerasScreen] Loading cameras...');
       const data = await api.getCameras();
-      setCameras(data);
-    } catch (error) {
-      console.error('Error loading cameras:', error);
+      console.log('[CamerasScreen] Cameras loaded:', data);
+      console.log('[CamerasScreen] Data type:', typeof data);
+      console.log('[CamerasScreen] Is array?', Array.isArray(data));
+      console.log('[CamerasScreen] Data length:', Array.isArray(data) ? data.length : 'N/A');
+      
+      if (Array.isArray(data)) {
+        setCameras(data);
+        if (data.length === 0) {
+          console.warn('[CamerasScreen] Received empty cameras array from API');
+          setError('No cameras found in database');
+        }
+      } else {
+        console.error('[CamerasScreen] Data is not an array:', data);
+        setCameras([]);
+        setError('Invalid response format from server');
+      }
+    } catch (error: any) {
+      console.error('[CamerasScreen] Error loading cameras:', error);
+      console.error('[CamerasScreen] Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+      });
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load cameras';
+      setError(errorMessage);
+      Alert.alert(
+        'Error Loading Cameras',
+        errorMessage + '\n\nStatus: ' + (error.response?.status || 'Unknown') + '\nURL: ' + (error.config?.url || 'Unknown'),
+        [{text: 'OK'}]
+      );
+      setCameras([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,7 +112,21 @@ const CamerasScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
       ListEmptyComponent={
-        <Text style={styles.emptyText}>No cameras found</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {error ? `Error: ${error}` : 'No cameras found'}
+          </Text>
+          {error && (
+            <TouchableOpacity style={styles.retryButton} onPress={loadCameras}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          )}
+          {!error && !loading && (
+            <Text style={styles.emptySubtext}>
+              Make sure cameras are configured in the web dashboard.
+            </Text>
+          )}
+        </View>
       }
     />
   );
@@ -135,11 +184,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
   emptyText: {
     textAlign: 'center',
     color: '#9ca3af',
-    padding: 40,
     fontSize: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  retryButton: {
+    backgroundColor: '#1e40af',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

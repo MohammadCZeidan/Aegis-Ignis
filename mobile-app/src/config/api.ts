@@ -19,7 +19,7 @@ const getBackendApiUrl = (): string => {
   }
 
   // Production fallback (should be set in .env)
-  return 'http://35.180.117.85/api/v1';
+  return 'http://35.180.227.44/api/v1';
 };
 
 const getServiceUrl = (envValue: string | undefined, defaultPort: number): string => {
@@ -34,7 +34,7 @@ const getServiceUrl = (envValue: string | undefined, defaultPort: number): strin
   }
 
   // Production fallback
-  return `http://35.180.117.85:${defaultPort}`;
+  return `http://35.180.227.44:${defaultPort}`;
 };
 
 export const API_CONFIG = {

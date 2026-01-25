@@ -8,7 +8,7 @@
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint .",
-    "postinstall": "cd ios && pod install",
+    "postinstall": "node -e \"if (process.platform === 'darwin') { require('child_process').execSync('cd ios && pod install', {stdio: 'inherit'}) }\"",
     "check-android": "check-android-setup.bat",
     "verify": "VERIFY-SETUP.bat",
     "fix-android": "FIX-ANDROID-NOW.bat",

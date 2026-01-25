@@ -384,17 +384,17 @@ class AlertManager:
             # Check for common Twilio errors
             error_str = str(e).lower()
             if 'not a valid' in error_str or 'invalid' in error_str:
-                logger.error("⚠ Invalid phone number format. Check TWILIO_WHATSAPP_FROM and TWILIO_WHATSAPP_TO")
-                logger.error("⚠ WhatsApp numbers must be in format: whatsapp:+1234567890")
+                logger.error(" Invalid phone number format. Check TWILIO_WHATSAPP_FROM and TWILIO_WHATSAPP_TO")
+                logger.error(" WhatsApp numbers must be in format: whatsapp:+1234567890")
             elif 'authentication' in error_str or 'credentials' in error_str:
-                logger.error("⚠ Twilio authentication failed. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN")
+                logger.error(" Twilio authentication failed. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN")
             elif 'whatsapp' in error_str or 'not approved' in error_str:
-                logger.error("⚠ WhatsApp-specific error. Ensure:")
+                logger.error(" WhatsApp-specific error. Ensure:")
                 logger.error("   1. Your Twilio account has WhatsApp enabled")
                 logger.error("   2. Your WhatsApp number is approved in Twilio console")
                 logger.error("   3. The recipient has sent you a message first (WhatsApp opt-in required)")
             elif 'permission' in error_str or 'unauthorized' in error_str:
-                logger.error("⚠ Permission denied. Check Twilio account permissions and WhatsApp approval status.")
+                logger.error(" Permission denied. Check Twilio account permissions and WhatsApp approval status.")
             
             return False
     

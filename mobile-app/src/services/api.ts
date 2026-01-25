@@ -63,9 +63,38 @@ class ApiClient {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, {
+          baseURL: config.baseURL,
+          hasToken: !!token,
+        });
         return config;
       },
       error => Promise.reject(error),
+    );
+
+    // Add response interceptor for logging
+    this.client.interceptors.response.use(
+      response => {
+        const url = response.config.url || '';
+        console.log(`[API] Response ${url}:`, {
+          status: response.status,
+          dataLength: Array.isArray(response.data) ? response.data.length : 'not array',
+        });
+        // Log full response for cameras endpoint to debug
+        if (url.includes('/cameras') && !url.includes('/cameras/')) {
+          console.log(`[API] Cameras response data:`, JSON.stringify(response.data, null, 2));
+        }
+        return response;
+      },
+      error => {
+        console.error(`[API] Error ${error.config?.url}:`, {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data,
+          fullError: JSON.stringify(error.response?.data || error.message, null, 2),
+        });
+        return Promise.reject(error);
+      },
     );
   }
 
@@ -86,7 +115,7 @@ class ApiClient {
 
   // Authentication
   async login(email: string, password: string): Promise<{token: string; user: any}> {
-    const response = await this.client.post('/auth/login', {email, password});
+    const response = await this.client.post('/auth/login/json', {email, password});
     if (response.data.token) {
       await AsyncStorage.setItem('auth_token', response.data.token);
     }
@@ -101,7 +130,15 @@ class ApiClient {
   async getFloors(): Promise<Floor[]> {
     return this.retryRequest(async () => {
       const response = await this.client.get('/floors');
-      return response.data;
+      // Backend may return array directly or wrapped in object
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (response.data && Array.isArray(response.data.floors)) {
+        return response.data.floors;
+      }
+      return [];
     });
   }
 
@@ -116,7 +153,24 @@ class ApiClient {
   async getCameras(): Promise<Camera[]> {
     return this.retryRequest(async () => {
       const response = await this.client.get('/cameras');
-      return response.data;
+      console.log('[API] getCameras raw response:', JSON.stringify(response.data, null, 2));
+      console.log('[API] getCameras response type:', typeof response.data);
+      console.log('[API] getCameras is array?', Array.isArray(response.data));
+      
+      // Backend may return array directly or wrapped in object
+      if (Array.isArray(response.data)) {
+        console.log('[API] getCameras returning array directly, length:', response.data.length);
+        return response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        console.log('[API] getCameras returning response.data.data, length:', response.data.data.length);
+        return response.data.data;
+      } else if (response.data && Array.isArray(response.data.cameras)) {
+        console.log('[API] getCameras returning response.data.cameras, length:', response.data.cameras.length);
+        return response.data.cameras;
+      }
+      console.warn('[API] getCameras: No array found in response, returning empty array');
+      console.warn('[API] getCameras response.data keys:', response.data ? Object.keys(response.data) : 'null');
+      return [];
     });
   }
 
@@ -131,7 +185,17 @@ class ApiClient {
   async getAlerts(params?: {limit?: number; status?: string}): Promise<Alert[]> {
     return this.retryRequest(async () => {
       const response = await this.client.get('/alerts', {params});
-      return response.data;
+      // Backend returns {success: true, alerts: [...]}, extract the alerts array
+      if (response.data && typeof response.data === 'object') {
+        if (Array.isArray(response.data)) {
+          return response.data;
+        } else if (response.data.alerts && Array.isArray(response.data.alerts)) {
+          return response.data.alerts;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          return response.data.data;
+        }
+      }
+      return [];
     });
   }
 

@@ -14,7 +14,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <!-- project overview -->
 <img src="./readme/card-titles/title2.svg"/>
 
-> Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring to protect commercial buildings, corporate offices, and multi-floor facilities. The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
+> Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring 
+>The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
 
 <br><br>
 
@@ -23,75 +24,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Physical Infrastructure                          │
-│                                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
-│  │ Camera 1 │  │ Camera 2 │  │ Camera 3 │  │ Camera N │               │
-│  │ Floor 1  │  │ Floor 2  │  │ Floor 3  │  │ Floor N  │               │
-│  └─────┬────┘  └─────┬────┘  └─────┬────┘  └─────┬────┘               │
-│        │             │             │             │                      │
-└────────┼─────────────┼─────────────┼─────────────┼──────────────────────┘
-         │             │             │             │
-         └─────────────┴─────────────┴─────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    Live Camera Detection Server                          │
-│                   (15 FPS Processing)                                   │
-│                                                                          │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │  ML Fire Detector (YOLOv8) + Color-Based Fallback                 │  │
-│  │  Face Recognition (InsightFace) + Person Tracking                  │  │
-│  │  Real-time Occupancy Monitoring                                   │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────┬──────────────────────────────────────────┘
-                               │
-                    ┌──────────┴──────────┐
-                    │                     │
-                    ▼                     ▼
-┌──────────────────────────────┐   ┌──────────────────────────────┐
-│   Alert Manager              │   │   Laravel Backend            │
-│ (Twilio + N8N Integration)   │   │   (PostgreSQL + APIs)        │
-│                              │   │                              │
-│  • WhatsApp Alerts           │   │  • Employee Management      │
-│  • Voice Calls               │   │  • Camera Management         │
-│  • SMS Notifications         │   │  • Alert History             │
-│  • N8N Workflows            │   │  • Presence Tracking         │
-└──────────────┬───────────────┘   └──────────────────────────────┘
-               │
-               ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         N8N Workflow Engine                              │
-│                                                                          │
-│  Webhook → Switch (Alert Type) → WhatsApp/Voice/SMS → Backend Logging   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+<img src="./readme/sql/schema.jpg "/>
 
-### Microservices Architecture
+<br><br>
 
-```
-┌─────────────────────────────────────────┐
-│     Laravel Backend (Port 8000)        │
-│  • RESTful APIs                         │
-│  • PostgreSQL Database                  │
-│  • Authentication (Sanctum)            │
-│  • Service Orchestration                │
-└──────────────┬────────────────────────┘
-               │
-        ┌──────┴──────┐
-        │            │
-        ↓            ↓
-┌──────────────┐  ┌──────────────┐
-│ Python Face  │  │ Python Fire  │
-│ Service      │  │ Detection    │
-│ (Port 8001)  │  │ (Port 8002)  │
-│              │  │              │
-│ • InsightFace│  │ • YOLOv8 ML  │
-│ • FastAPI    │  │ • Color Det. │
-│ • Caching    │  │ • FastAPI    │
-└──────────────┘  └──────────────┘
+<img src="./readme/sql/Microserevces.png "/>
+
 ```
 
 ### Technology Stack

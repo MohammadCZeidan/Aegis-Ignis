@@ -7,12 +7,13 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import api, {Alert, Floor} from '../services/api';
+import api, {Alert as AlertType, Floor} from '../services/api';
 
 const DashboardScreen: React.FC = () => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -20,14 +21,26 @@ const DashboardScreen: React.FC = () => {
 
   const loadData = async () => {
     try {
+      console.log('Loading dashboard data...');
       const [alertsData, floorsData] = await Promise.all([
         api.getAlerts({limit: 5}),
         api.getFloors(),
       ]);
-      setAlerts(alertsData);
-      setFloors(floorsData);
-    } catch (error) {
+      console.log('Dashboard data loaded - Alerts:', alertsData, 'Floors:', floorsData);
+      // Ensure we always have arrays, even if API returns undefined/null
+      setAlerts(Array.isArray(alertsData) ? alertsData : []);
+      setFloors(Array.isArray(floorsData) ? floorsData : []);
+    } catch (error: any) {
       console.error('Error loading dashboard data:', error);
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+      // Set empty arrays on error to prevent undefined errors
+      setAlerts([]);
+      setFloors([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -51,8 +64,10 @@ const DashboardScreen: React.FC = () => {
     );
   }
 
-  const activeAlerts = alerts.filter(a => a.status !== 'resolved');
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical');
+  // Ensure alerts is always an array before filtering
+  const alertsArray = Array.isArray(alerts) ? alerts : [];
+  const activeAlerts = alertsArray.filter(a => a.status !== 'resolved');
+  const criticalAlerts = alertsArray.filter(a => a.severity === 'critical');
 
   return (
     <ScrollView
@@ -64,7 +79,7 @@ const DashboardScreen: React.FC = () => {
         {/* Stats Cards */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{floors.length}</Text>
+            <Text style={styles.statValue}>{Array.isArray(floors) ? floors.length : 0}</Text>
             <Text style={styles.statLabel}>Floors</Text>
           </View>
           <View style={styles.statCard}>
@@ -104,10 +119,10 @@ const DashboardScreen: React.FC = () => {
         {/* Recent Alerts */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Alerts</Text>
-          {alerts.length === 0 ? (
+          {alertsArray.length === 0 ? (
             <Text style={styles.emptyText}>No alerts</Text>
           ) : (
-            alerts.map(alert => (
+            alertsArray.map(alert => (
               <TouchableOpacity
                 key={alert.id}
                 style={[
