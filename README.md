@@ -24,51 +24,28 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### System Architecture
 
-<img src="./readme/sql/schema.jpg "/>
+<img src="./readme/sql/System.png "/>
 
 <br><br>
 
+### Microservices Architecture  
 <img src="./readme/sql/Microserevces.png "/>
 
-```
+### Entity Relationship Diagram
+<img src="./readme/sql/Diagram 3.png"/>
 
-### Technology Stack
-
-| Component | Technology |
-|-----------|-----------|
-| **Backend** | Laravel 10, PostgreSQL |
-| **Face Recognition** | Python, FastAPI, InsightFace |
-| **Fire Detection** | Python, FastAPI, YOLOv8, OpenCV |
-| **Frontend** | React, TypeScript, Vite, Tailwind CSS |
-| **ML Framework** | Ultralytics YOLOv8, PyTorch |
-| **Workflow Automation** | N8N |
-| **Communication** | Twilio (WhatsApp, SMS, Voice) |
-| **Real-time** | WebSockets, Server-Sent Events |
-
+### n8n
+<img src="./readme/sql/n8n-workflow.png"/>
 <br><br>
-
 <!-- Project Highlights -->
 <img src="./readme/card-titles/title4.svg"/>
 
 ### Core Features
 
-- **Real-time Fire Detection**: ML-powered YOLOv8 model with color-based fallback detection running at 15 FPS for instant fire and smoke detection
-- **Face Recognition System**: Fast employee identification using InsightFace embeddings with duplicate detection and caching for instant responses
-- **Occupancy Monitoring**: Real-time tracking of people on each floor with automatic presence updates and evacuation alerts
-- **Multi-Channel Alerts**: WhatsApp, SMS, and voice call notifications through N8N workflows with intelligent routing based on alert severity
-- **Smart Building Dashboard**: Comprehensive web interface for monitoring cameras, floors, alerts, and employee presence in real-time
-- **Employee Registration Portal**: Streamlined face registration system with photo upload and automatic embedding generation
-
-### Key Capabilities
-
-| Feature | Description |
-|---------|-------------|
-| **ML Fire Detection** | YOLOv8 model trained on fire/smoke datasets with 85%+ accuracy, fallback to HSV color detection |
-| **Face Recognition** | Sub-second employee identification with duplicate prevention and cached embeddings |
-| **Real-time Monitoring** | Live camera feeds with 15 FPS processing, floor-by-floor occupancy tracking |
-| **Emergency Response** | Automatic alerts with people count, floor location, and evacuation instructions |
-| **Multi-floor Support** | Scalable architecture supporting unlimited floors and cameras per building |
-
+-ML: YOLOv8-based fire and smoke detection.
+-Face Recognition: Fast employee identification using InsightFace embeddings. 
+-Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity-based routing
+-Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation
 <br><br>
 
 <!-- Demo -->
