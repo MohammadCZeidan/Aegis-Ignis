@@ -41,7 +41,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 -ML: YOLOv8-based fire and smoke detection.<br>
 -Face Recognition: Fast employee identification using InsightFace embeddings. <br>
--Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity-based routing<br>
+-Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity based routing<br>
 -Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation<br>
 <br><br>
 <img src="./readme/sql/demo.png"/>
