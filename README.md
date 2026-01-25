@@ -81,20 +81,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 #### Fire Detection Model
 
 - **Model**: YOLOv8 (YOLOv8n, YOLOv8s, YOLOv8m variants)
-- **Training Dataset**: 900+ images expanded to 20,000+ using augmentation
-- **Dataset Split**: 80/20 training/validation split
-- **Performance**: 
-  - mAP50: 0.75-0.90
-  - Precision: 0.80-0.95
-  - Recall: 0.75-0.90
-  - Inference Speed: 10-30ms per frame (GPU)
+- **Training Dataset**: 100 images expanded to 20,000+ using augmentation
+- **Dataset Split**: 90/10 training/validation split
 
 #### Model Training Process
 
 1. **Dataset Preparation**: Roboflow dataset download and validation
 2. **Data Augmentation**: Copula-based augmentation with perturbation and noise
 3. **Training**: 10-fold cross-validation with early stopping
-4. **Model Serving**: FastAPI endpoint with MLFlow model registry integration
+
 
 #### Face Recognition
 
@@ -103,22 +98,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Performance**: Sub-second identification with 99%+ accuracy
 - **Features**: Duplicate detection, caching, batch processing
 
-| Training Dataset | Model Performance | Deployment |
-| --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| *Fire Detection Dataset* | *YOLOv8 Metrics* | *FastAPI Endpoint* |
+| Training Dataset | Model Performance |
+| --------------------------------------- | ------------------------------------- |
+| ![CI/CD](./readme/sql/ML.png) |![CI/CD](./readme/sql/BoxF1_curve.png) |
 
 <br><br>
-
-### MLOps (MLFlow)
-
-- Model artifacts and training runs tracked using MLFlow
-- Model versioning and registry for production deployments
-- FastAPI endpoints serving registered models
-- Automatic model validation and performance monitoring
-
-| Model Registry | Training Metrics | Model Serving |
-| --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| *MLFlow Dashboard* | *Training Graphs* | *FastAPI Endpoints* |
 
 <br><br>
 
@@ -146,35 +130,8 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 - **Face Recognition Service**: Available at `http://localhost:8001/docs`
 - **Fire Detection Service**: Available at `http://localhost:8002/docs`
 
-#### Key Endpoints
 
-**Laravel Backend (Port 8000)**
-```
-GET    /api/v1/cameras              # List all cameras
-POST   /api/v1/cameras              # Add new camera
-GET    /api/v1/floors               # List all floors
-GET    /api/v1/alerts               # Get fire alerts
-POST   /api/v1/alerts/fire          # Create fire alert
-GET    /api/v1/employees            # List employees
-POST   /api/v1/employees            # Register employee
-GET    /api/v1/presence/floor-live/{id}  # Real-time floor occupancy
-```
 
-**Face Recognition Service (Port 8001)**
-```
-POST   /recognize                   # Recognize face from image
-POST   /register                   # Register new face
-GET    /health                     # Service health check
-```
-
-**Fire Detection Service (Port 8002)**
-```
-POST   /detect-fire                # Detect fire in image
-GET    /health                     # Service health check
-GET    /config                     # Get detection configuration
-```
-
-<br><br>
 
 <!-- Extras -->
 <img src="./readme/card-titles/title7.svg"/>
