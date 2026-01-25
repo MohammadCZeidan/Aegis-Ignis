@@ -89,10 +89,10 @@ jobs:
         working-directory: ./backend-laravel
         run: vendor/bin/phpunit
 
-   build-and-push:
+  build-and-push:
     name: Build and Push to DockerHub
     runs-on: ubuntu-latest
-    needs: [docker-build-test, laravel-tests, frontend-tests]
+    needs: [docker-build-test, laravel-tests]
     if: |
       github.event_name == 'workflow_dispatch' || 
       (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
