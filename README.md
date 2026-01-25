@@ -57,7 +57,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 | Fire Alerts | Employee Management | Face Registration |
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| *Coming Soon* | *Coming Soon* | *Coming Soon* |
+| *Coming Soon* |![Face Registration](./readme/sql/Employees.png) | ![Face Registration](./readme/gif/face-recognizatipn.gif) |
 
 <br><br>
 
