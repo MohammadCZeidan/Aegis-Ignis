@@ -1,6 +1,6 @@
 <img src="./readme/card-titles/title1.svg"/>
+<br>
 
-<br><br>
 ## License
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -23,7 +23,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <img src="./readme/sql/System.png "/>
 
-<br><br>
+<br>
 
 ### Microservices Architecture  
 <img src="./readme/sql/Microserevces.png "/>
@@ -43,7 +43,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -Face Recognition: Fast employee identification using InsightFace embeddings. <br>
 -Multi-Channel Alerts: WhatsApp, SMS, and voice notifications via N8N with severity based routing<br>
 -Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation<br>
-<br><br>
+<br>
 <img src="./readme/sql/demo.png"/>
 
 <!-- Demo -->
@@ -59,7 +59,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | --------------------------------------- | ------------------------------------- | ------------------------------------- |
 | ![Alerts](./readme/gif/alerts.gif) |![Face Registration](./readme/sql/Employees.png) | ![Face Registration](./readme/gif/face-recognizatipn.gif) |
 
-<br><br>
+<br>
 
 <!-- Development & Testing -->
 <img src="./readme/card-titles/title6.svg"/>
@@ -74,7 +74,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Python services**: Unit tests for ML models and detection algorithms
 - **Frontend tests**: React component testing with Vitest
 
-<br><br>
+<br>
 
 ### Machine Learning Development
 
@@ -90,7 +90,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 2. **Data Augmentation**: Copula-based augmentation with perturbation and noise
 3. **Training**: 10-fold cross-validation with early stopping
 
-
 #### Face Recognition
 
 - **Model**: InsightFace (ArcFace architecture)
@@ -102,9 +101,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | --------------------------------------- | ------------------------------------- |
 | ![CI/CD](./readme/sql/ML.png) |![CI/CD](./readme/sql/BoxF1_curve.png) |
 
-<br><br>
-
-<br><br>
+<br>
 
 ### N8N Workflow Automation
 
