@@ -119,126 +119,24 @@ The system uses N8N for intelligent alert routing and multi-channel notification
 - **Backend Integration**: Automatic logging and alert history updates
 
 Workflow configuration available in `n8n-workflow-fire-alert.json`
-
 <br><br>
-
-### API Documentation
-
-#### Swagger/OpenAPI
-
-- **Laravel Backend**: Available at `http://localhost:8000/api/documentation` (when configured)
-- **Face Recognition Service**: Available at `http://localhost:8001/docs`
-- **Fire Detection Service**: Available at `http://localhost:8002/docs`
-
-
-
-
 <!-- Extras -->
-<img src="./readme/card-titles/title7.svg"/>
+<img src="./readme/card-titles/title7.svg"/> 
 
+| Mobile Overview |
+| ---------------------------------------| 
+| ![Dashboard](./readme/gif/MObile.gif) |
 ### Additional Tools & Services
 
 | Tool | Purpose |
 |------|---------|
 | **N8N** | Workflow automation for multi-channel alerts |
-| **Twilio** | WhatsApp, SMS, and Voice call integration |
+| **Twilio** | WhatsApp,  and Voice call integration |
 | **MLFlow** | ML model tracking and registry |
 | **PostgreSQL** | Primary database for all system data |
 | **Docker** | Containerized PostgreSQL deployment |
 
-### Project Structure
-
-```
-Aegis-IgnisGit/
-├── backend-laravel/          # Laravel REST API backend
-├── python-face-service/       # Face recognition microservice
-├── fire-detection-service/     # Fire detection microservice
-├── camera-detection-service/  # Camera stream processing
-├── Smart Building Dashboard Design/  # React frontend dashboard
-├── face-registration/         # Employee registration portal
-├── ml_models/                 # ML model training and inference
-│   ├── train/                # YOLOv8 training scripts
-│   └── inference/            # Model inference code
-├── services/                 # Shared Python services
-│   ├── alert_manager.py      # Alert management and N8N integration
-│   └── ml_fire_detector.py   # ML fire detection service
-└── readme/                    # Documentation assets
-```
-
-### Environment Configuration
-
-Key environment variables required:
-
-```env
-# Laravel Backend
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_DATABASE=aegis_ignis
-
-# Twilio (Alerts)
-TWILIO_ACCOUNT_SID=your_sid
-TWILIO_AUTH_TOKEN=your_token
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-TWILIO_WHATSAPP_TO=whatsapp:+1234567890
-
-# N8N Webhook
-N8N_WEBHOOK_URL=http://localhost:5678/webhook/fire-alert
-
-# Service URLs
-FACE_SERVICE_URL=http://localhost:8001
-FIRE_SERVICE_URL=http://localhost:8002
-```
-
 <br><br>
-
-### Deployment
-
-#### Production Deployment
-
-1. **Backend**: Deploy Laravel to AWS EC2 or similar
-2. **Python Services**: Deploy as systemd services or Docker containers
-3. **Frontend**: Build and deploy React app to CDN or static hosting
-4. **Database**: PostgreSQL on managed service (AWS RDS, etc.)
-5. **N8N**: Deploy N8N instance for workflow automation
-
-#### Docker Deployment (Optional)
-
-```bash
-# Start PostgreSQL
-docker-compose -f docker/docker-compose.yml up -d postgres
-
-# Run migrations
-cd backend-laravel
-php artisan migrate
-```
-
-<br><br>
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Code Standards
-
-- **PHP**: Follow PSR-12 coding standards
-- **Python**: Follow PEP 8 style guide
-- **TypeScript/React**: Use ESLint and Prettier configurations
-- **Commits**: Use conventional commit messages
-
-<br><br>
-
-### Support & Documentation
-
-- **Architecture Details**: See [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Backend Setup**: See [backend-laravel/README_UNIFIED_BACKEND.md](backend-laravel/README_UNIFIED_BACKEND.md)
-- **Fire Detection Training**: See [ml_models/train/README.md](ml_models/train/README.md)
-
-<br><br>
-
 ---
 
 **Aegis-Ignis** - Intelligent Smart Building Security System
