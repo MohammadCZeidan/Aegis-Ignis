@@ -59,6 +59,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | <img src="./readme/gif/alerts.gif" width="220" alt="Fire Alerts" /> | <img src="./readme/sql/Employees.png" width="220" alt="Employee Management" /> | <img src="./readme/gif/face-recognizatipn.gif" width="220" alt="Face Registration" /> |
 
 <br>
+| Mobile Overview |
+| ---------------------------------------| 
+| ![Dashboard](./readme/gif/MObile.gif) |
 
 <!-- Development & Testing -->
 <img src="./readme/card-titles/title6.svg"/>
@@ -119,9 +122,9 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 <!-- Extras -->
 <img src="./readme/card-titles/title7.svg"/> 
 
-| Mobile Overview |
-| ---------------------------------------| 
-| ![Dashboard](./readme/gif/MObile.gif) |
+| Dockers |  Postman |
+| ----------- |  ----------------- |
+| <img src="./readme/sql/Dockers.png" width="520" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="220" alt="Postman" /> |
 ### Additional Tools & Services
 
 | Tool | Purpose |
