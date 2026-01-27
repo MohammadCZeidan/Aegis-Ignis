@@ -63,7 +63,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 | Mobile Overview |
 | ---------------------------------------| 
-| ![Mobile] (./readme/gif/MObile.gif) |
+| ![Mobile]  <img src="./readme/gif/MObile.gif" />  |
 
 
 <!-- Development & Testing -->
