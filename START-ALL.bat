@@ -28,19 +28,19 @@ timeout /t 3 /nobreak >nul
 echo.
 
 echo [2/6] Starting Live Camera Detection Server (Port 5000)...
-start "Live Camera Server" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Camera Detection Server - ML ENABLED'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Live Camera Detection Server Starting...' -ForegroundColor Cyan; Write-Host '   ML Fire Detection + N8N Alerts + Face Recognition' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe live_camera_detection_server.py"
+start "Live Camera Server" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Camera Detection Server - ML ENABLED'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Live Camera Detection Server Starting...' -ForegroundColor Cyan; Write-Host '   ML Fire Detection + N8N Alerts + Face Recognition' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe Agent\live_camera_detection_server.py"
 timeout /t 5 /nobreak >nul
 echo [OK] Live Camera Detection Server launched
 echo.
 
 echo [3/6] Starting Face Recognition Service (Port 8001)...
-start "Face Recognition Service" powershell -NoExit -Command "cd '%CD%\python-face-service'; $Host.UI.RawUI.WindowTitle='Face Recognition Service'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   Face Recognition Service Starting...' -ForegroundColor Green; Write-Host '   Cached Data + Duplicate Checking' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' main_fast.py"
+start "Face Recognition Service" powershell -NoExit -Command "cd '%CD%\Agent\python-face-service'; $Host.UI.RawUI.WindowTitle='Face Recognition Service'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   Face Recognition Service Starting...' -ForegroundColor Green; Write-Host '   Cached Data + Duplicate Checking' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' main_fast.py"
 timeout /t 2 /nobreak >nul
 echo [OK] Face Recognition launched
 echo.
 
 echo [3.5/6] Starting Live Floor Monitoring Service (Port 8003)...
-start "Floor Monitoring Service" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Floor Monitoring'; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host '   Live Floor Monitoring Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Employee Detection on Floors' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' python-face-service\live_floor_monitoring.py"
+start "Floor Monitoring Service" powershell -NoExit -Command "cd '%CD%'; $Host.UI.RawUI.WindowTitle='Live Floor Monitoring'; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host '   Live Floor Monitoring Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Employee Detection on Floors' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor DarkCyan; Write-Host ''; & '%CD%\.venv\Scripts\python.exe' Agent\python-face-service\live_floor_monitoring.py"
 timeout /t 3 /nobreak >nul
 echo [OK] Floor Monitoring launched
 echo.
@@ -50,20 +50,20 @@ echo [OK] Camera will auto-start in 10 seconds
 echo.
 
 echo [4/6] Setting up Fire Detection Database...
-cd backend-laravel
+cd Server
 php setup_fire_detection.php >nul 2>&1
 cd ..
 echo [OK] Database configured (Camera 1, Floor 3)
 echo.
 
 echo [4.5/6] Starting Fire Detection Service (Port 8002) - READY MODE...
-start "Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkRed'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='Fire Detection - READY'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   FIRE DETECTION - FULLY CONFIGURED' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Settings:' -ForegroundColor Cyan; Write-Host '   - Confidence: 55%%+ (Balanced)' -ForegroundColor Green; Write-Host '   - Camera ID: 1 (Physical Webcam 0)' -ForegroundColor Green; Write-Host '   - Floor: Third Floor (ID: 3)' -ForegroundColor Green; Write-Host '   - Screenshots: AUTO SAVE' -ForegroundColor Green; Write-Host '   - Alerts: AUTO CREATE' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Fire detection with screenshots ready!' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; python fire-detection-service\main.py"
+start "Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkRed'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='Fire Detection - READY'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   FIRE DETECTION - FULLY CONFIGURED' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Settings:' -ForegroundColor Cyan; Write-Host '   - Confidence: 55%%+ (Balanced)' -ForegroundColor Green; Write-Host '   - Camera ID: 1 (Physical Webcam 0)' -ForegroundColor Green; Write-Host '   - Floor: Third Floor (ID: 3)' -ForegroundColor Green; Write-Host '   - Screenshots: AUTO SAVE' -ForegroundColor Green; Write-Host '   - Alerts: AUTO CREATE' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Fire detection with screenshots ready!' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; python Agent\fire-detection-service\main.py"
 timeout /t 3 /nobreak >nul
 echo [OK] Fire Detection launched (Alerts + Screenshots enabled)
 echo.
 
 echo [4.6/6] Starting ML Fire Detection Service (Port 8004) - ML MODE...
-start "ML Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkMagenta'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='ML Fire Detection Service'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML FIRE DETECTION - YOLOv8 + N8N' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   Features:' -ForegroundColor Cyan; Write-Host '   - YOLOv8 ML Model (with color fallback)' -ForegroundColor Green; Write-Host '   - N8N WhatsApp/Voice Alerts' -ForegroundColor Green; Write-Host '   - EC2 Backend Integration' -ForegroundColor Green; Write-Host '   - Confidence Threshold' -ForegroundColor Green; Write-Host '   - People Count Detection' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML fire detection ready' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe fire-detection-service\main_ml.py"
+start "ML Fire Detection Service" powershell -NoExit -Command "$Host.UI.RawUI.BackgroundColor='DarkMagenta'; $Host.UI.RawUI.ForegroundColor='Yellow'; Clear-Host; cd '%CD%'; $Host.UI.RawUI.WindowTitle='ML Fire Detection Service'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML FIRE DETECTION - YOLOv8 + N8N' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   Features:' -ForegroundColor Cyan; Write-Host '   - YOLOv8 ML Model (with color fallback)' -ForegroundColor Green; Write-Host '   - N8N WhatsApp/Voice Alerts' -ForegroundColor Green; Write-Host '   - EC2 Backend Integration' -ForegroundColor Green; Write-Host '   - Confidence Threshold' -ForegroundColor Green; Write-Host '   - People Count Detection' -ForegroundColor Green; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   ML fire detection ready' -ForegroundColor Red; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; C:/Users/user/AppData/Local/Programs/Python/Python312/python.exe Agent\fire-detection-service\main_ml.py"
 timeout /t 3 /nobreak >nul
 echo [OK] ML Fire Detection launched (AI + N8N Alerts enabled)
 echo.
@@ -73,27 +73,27 @@ echo [OK] Backend connected (AWS EC2)
 echo.
 
 echo [6/8] Starting Camera Detection Service...
-start "Camera Detection Service" powershell -NoExit -Command "cd '%CD%\camera-detection-service'; $Host.UI.RawUI.WindowTitle='Camera Detection Service'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Camera Detection Service Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Fire + Face Detection' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; python main.py"
+start "Camera Detection Service" powershell -NoExit -Command "cd '%CD%\Agent\camera-detection-service'; $Host.UI.RawUI.WindowTitle='Camera Detection Service'; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host '   Camera Detection Service Starting...' -ForegroundColor Cyan; Write-Host '   Real-time Fire + Face Detection' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Cyan; Write-Host ''; python main.py"
 timeout /t 2 /nobreak >nul
 echo [OK] Camera Detection Service launched
 echo.
 
 echo [7/8] Starting Web Dashboard (Port 5173)...
-start "Web Dashboard" powershell -NoExit -Command "cd '%CD%\Smart Building Dashboard Design'; $Host.UI.RawUI.WindowTitle='Web Dashboard'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   Web Dashboard Starting...' -ForegroundColor Blue; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run dev"
+start "Web Dashboard" powershell -NoExit -Command "cd '%CD%\Client'; $Host.UI.RawUI.WindowTitle='Web Dashboard'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   Web Dashboard Starting...' -ForegroundColor Blue; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run dev"
 timeout /t 2 /nobreak >nul
 echo [OK] Web Dashboard launched
 echo.
 
 echo [8/9] Starting Employee Registration Portal (Port 5174)...
-start "Employee Registration" powershell -NoExit -Command "cd '%CD%\face-registration'; $Host.UI.RawUI.WindowTitle='Employee Registration Portal'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Employee Registration Portal Starting...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; npm run dev"
+start "Employee Registration" powershell -NoExit -Command "cd '%CD%\Client\face-registration'; $Host.UI.RawUI.WindowTitle='Employee Registration Portal'; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host '   Employee Registration Portal Starting...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Yellow; Write-Host ''; npm run dev"
 timeout /t 2 /nobreak >nul
 echo [OK] Employee Registration launched
 echo.
 
 echo [9/9] Starting React Native Mobile App...
-if exist "mobile-app\package.json" (
+if exist "Client\mobile-app\package.json" (
     echo    Setting up Android development environment...
-    cd "C:\Users\user\OneDrive\Desktop\Aegis-IgnisGit\mobile-app"
+    cd "C:\Users\user\OneDrive\Desktop\Aegis-IgnisGit\Client\mobile-app"
     powershell -ExecutionPolicy Bypass -File .\SETUP-PATH.ps1 >nul 2>&1
     if %errorlevel%==0 (
         echo    [OK] PATH configured
@@ -103,21 +103,21 @@ if exist "mobile-app\package.json" (
     cd "%~dp0"
     echo.
     echo    Checking mobile app dependencies...
-    if not exist "mobile-app\node_modules" (
+    if not exist "Client\mobile-app\node_modules" (
         echo    [INFO] Installing mobile app dependencies (first time setup)...
-        cd mobile-app
+        cd Client\mobile-app
         call npm install >nul 2>&1
-        cd ..
+        cd ..\..
         echo    [OK] Dependencies installed
     )
     echo    Starting Metro Bundler...
-    start "React Native Metro" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Metro Bundler'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   React Native Metro Bundler' -ForegroundColor Magenta; Write-Host '   Mobile App Development Server' -ForegroundColor Cyan; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; npm start"
+    start "React Native Metro" powershell -NoExit -Command "cd '%CD%\Client\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Metro Bundler'; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host '   React Native Metro Bundler' -ForegroundColor Magenta; Write-Host '   Mobile App Development Server' -ForegroundColor Cyan; Write-Host '===================================================' -ForegroundColor Magenta; Write-Host ''; npm start"
     timeout /t 5 /nobreak >nul
     echo [OK] Metro Bundler started
     echo.
     
     echo    Building and launching Android app...
-    start "React Native Android" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Android'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   React Native Android App' -ForegroundColor Green; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; npm run android"
+    start "React Native Android" powershell -NoExit -Command "cd '%CD%\Client\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native Android'; Write-Host '===================================================' -ForegroundColor Green; Write-Host '   React Native Android App' -ForegroundColor Green; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Green; Write-Host ''; npm run android"
     timeout /t 3 /nobreak >nul
     echo [OK] Android app build initiated
     echo.
@@ -126,7 +126,7 @@ if exist "mobile-app\package.json" (
     powershell -Command "if (Test-Path '/usr/bin/sw_vers' -or (Get-Command 'xcodebuild' -ErrorAction SilentlyContinue)) { exit 0 } else { exit 1 }" >nul 2>&1
     if %errorlevel%==0 (
         echo    Detected macOS - Starting iOS app...
-        start "React Native iOS" powershell -NoExit -Command "cd '%CD%\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native iOS'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   React Native iOS App' -ForegroundColor Blue; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run ios"
+        start "React Native iOS" powershell -NoExit -Command "cd '%CD%\Client\mobile-app'; $Host.UI.RawUI.WindowTitle='React Native iOS'; Write-Host '===================================================' -ForegroundColor Blue; Write-Host '   React Native iOS App' -ForegroundColor Blue; Write-Host '   Building and launching...' -ForegroundColor Yellow; Write-Host '===================================================' -ForegroundColor Blue; Write-Host ''; npm run ios"
         timeout /t 3 /nobreak >nul
         echo [OK] iOS app build initiated
         echo.
@@ -135,7 +135,7 @@ if exist "mobile-app\package.json" (
     )
 ) else (
     echo [WARNING] Mobile app directory not found - skipping mobile app startup
-    echo           Create mobile-app directory and run 'npm install' to enable
+    echo           Create Client\mobile-app directory and run 'npm install' to enable
 )
 echo.
 
