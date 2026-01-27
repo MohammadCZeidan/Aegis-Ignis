@@ -44,7 +44,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 -Employee Registration Portal: Simple face registration with photo upload and automatic embedding generation<br>
 <br>
 <img src="./readme/sql/demo.png"/>
-
+<br>
 <!-- Demo -->
 <img src="./readme/card-titles/title5.svg"/>
 
@@ -104,7 +104,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 | Training Dataset | Model Performance |
 | --------------------------------------- | ------------------------------------- |
-| ![CI/CD](./readme/sql/ML.png) |![CI/CD](./readme/sql/BoxF1_curve.png) |
+|  <img src="./readme/sql/ML.png" width="420" alt="Training" /> |<img src="./readme/sql/BoxF1_curve.png" width="420" alt="Model" /> |
 
 <br>
 
