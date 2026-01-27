@@ -62,13 +62,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### System Screenshots
 
-| Dashboard Overview | Login Overview |  Camera Management |
-| ---------------------------------------| --------------------------------------- |  ------------------------------------- |
-| ![Dashboard](./readme/gif/Dashboard.gif) | ![Login](./readme/gif/login.gif)  | ![Camera](./readme/gif/Camera-settings.gif) |
+| Dashboard Overview | Login Overview | Camera Management |
+| ------------------ | -------------- | ----------------- |
+| <img src="./readme/gif/Dashboard.gif" width="320" alt="Dashboard Overview" /> | <img src="./readme/gif/login.gif" width="320" alt="Login Overview" /> | <img src="./readme/gif/Camera-settings.gif" width="320" alt="Camera Management" /> |
 
 | Fire Alerts | Employee Management | Face Registration |
-| --------------------------------------- | ------------------------------------- | ------------------------------------- |
-| ![Alerts](./readme/gif/alerts.gif) |![Face Registration](./readme/sql/Employees.png) | ![Face Registration](./readme/gif/face-recognizatipn.gif) |
+| ----------- | ------------------- | ----------------- |
+| <img src="./readme/gif/alerts.gif" width="320" alt="Fire Alerts" /> | <img src="./readme/sql/Employees.png" width="320" alt="Employee Management" /> | <img src="./readme/gif/face-recognizatipn.gif" width="320" alt="Face Registration" /> |
 
 <br>
 
