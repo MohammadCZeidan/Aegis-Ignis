@@ -14,6 +14,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 > Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring <br>
 >The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
 
+### Project structure
+
+| Folder | Description |
+|--------|-------------|
+| **Server** | Laravel API backend |
+| **Client** | Web dashboard, face-registration app, and mobile app |
+| **Agent** | Fire detection, face recognition, camera detection services and live camera server |
+| **Edge** | Edge processor and n8n workflows |
+| **services** | Shared alert manager and ML utilities |
+| **docker** | Docker Compose configs |
+
 <br><br>
 
 <!-- System Design -->
@@ -70,7 +81,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | --------------------------------------- | ------------------------------------- |
 | ![CI/CD](./readme/sql/CiCd.png) | ![CI/CD](./readme/sql/tests.png) |
 
-- **Backend tests**: `cd backend-laravel && php artisan test`
+- **Backend tests**: `cd Server && php artisan test`
 - **Python services**: Unit tests for ML models and detection algorithms
 - **Frontend tests**: React component testing with Vitest
 

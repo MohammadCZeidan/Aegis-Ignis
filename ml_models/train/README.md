@@ -229,12 +229,12 @@ FIRE_CONFIDENCE_THRESHOLD=0.5
 ### 2. Restart Services
 ```bash
 # Fire detection service
-cd ../../fire-detection-service
+cd ../../Agent/fire-detection-service
 python main_v2.py
 
-# Live camera server
-cd ..
-python live_camera_detection_server.py
+# Live camera server (from repo root)
+cd ../..
+python Agent/live_camera_detection_server.py
 ```
 
 ### 3. Test Live
