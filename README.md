@@ -124,7 +124,7 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 
 | Dockers |  Postman |
 | ----------- |  ----------------- |
-| <img src="./readme/sql/Dockers.png" width="520" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="220" alt="Postman" /> |
+| <img src="./readme/sql/Dockers.png" width="420" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="420" alt="Postman" /> |
 ### Additional Tools & Services
 
 | Tool | Purpose |
