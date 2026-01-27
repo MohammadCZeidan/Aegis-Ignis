@@ -14,18 +14,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 > Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring <br>
 >The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
 
-### Project structure
-
-| Folder | Description |
-|--------|-------------|
-| **Server** | Laravel API backend |
-| **Client** | Web dashboard, face-registration app, and mobile app |
-| **Agent** | Fire detection, face recognition, camera detection services and live camera server |
-| **Edge** | Edge processor and n8n workflows |
-| **services** | Shared alert manager and ML utilities |
-| **docker** | Docker Compose configs |
-
-<br><br>
 
 <!-- System Design -->
 <img src="./readme/card-titles/title3.svg"/>
@@ -64,11 +52,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 | Dashboard Overview | Login Overview | Camera Management |
 | ------------------ | -------------- | ----------------- |
-| <img src="./readme/gif/Dashboard.gif" width="320" alt="Dashboard Overview" /> | <img src="./readme/gif/login.gif" width="320" alt="Login Overview" /> | <img src="./readme/gif/Camera-settings.gif" width="320" alt="Camera Management" /> |
+| <img src="./readme/gif/Dashboard.gif" width="220" alt="Dashboard Overview" /> | <img src="./readme/gif/login.gif" width="220" alt="Login Overview" /> | <img src="./readme/gif/Camera-settings.gif" width="220" alt="Camera Management" /> |
 
 | Fire Alerts | Employee Management | Face Registration |
 | ----------- | ------------------- | ----------------- |
-| <img src="./readme/gif/alerts.gif" width="320" alt="Fire Alerts" /> | <img src="./readme/sql/Employees.png" width="320" alt="Employee Management" /> | <img src="./readme/gif/face-recognizatipn.gif" width="320" alt="Face Registration" /> |
+| <img src="./readme/gif/alerts.gif" width="220" alt="Fire Alerts" /> | <img src="./readme/sql/Employees.png" width="220" alt="Employee Management" /> | <img src="./readme/gif/face-recognizatipn.gif" width="220" alt="Face Registration" /> |
 
 <br>
 
