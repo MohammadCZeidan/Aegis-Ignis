@@ -22,6 +22,9 @@ _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if _repo_root not in sys.path:
     sys.path.insert(0, _repo_root)
 
+# Load repo root .env so BACKEND_API_URL and N8N_WEBHOOK_URL are used
+load_dotenv(dotenv_path=os.path.join(_repo_root, ".env"))
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -414,13 +417,16 @@ async def start_camera_monitoring(camera_id: int):
         raise HTTPException(503, "Face detection unavailable")
     
     try:
-        # Get camera details from backend
-        response = requests.get(f"{LARAVEL_API_URL}/api/v1/cameras/{camera_id}")
+        # Get camera details from backend (BACKEND_API_URL from repo root .env)
+        url = f"{LARAVEL_API_URL}/api/v1/cameras/{camera_id}"
+        response = requests.get(url, timeout=10)
         
         if response.status_code != 200:
-            raise HTTPException(404, "Camera not found")
+            logger.warning(f"Backend returned {response.status_code} for GET {url} - ensure camera {camera_id} exists and has stream_url and floor_id")
+            raise HTTPException(404, f"Camera {camera_id} not found in backend. Check backend has this camera with stream_url and floor_id set.")
         
-        camera_data = response.json()['data']
+        data = response.json()
+        camera_data = data.get("data", data)
         stream_url = camera_data.get('stream_url') or camera_data.get('rtsp_url')
         floor_id = camera_data.get('floor_id')
         
