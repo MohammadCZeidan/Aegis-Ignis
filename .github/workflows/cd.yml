@@ -50,6 +50,7 @@ jobs:
             echo "${{ secrets.DOCKERHUB_TOKEN }}" | $DOCKER_CMD login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
             
             $DOCKER_CMD compose -f docker/docker-compose.prod.yml down || true
+            $DOCKER_CMD rm -f aegis-db aegis-backend aegis-frontend 2>/dev/null || true
             $DOCKER_CMD system prune -f || true
             DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker/docker-compose.prod.yml pull
             DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}" $DOCKER_CMD compose -f docker/docker-compose.prod.yml up -d
