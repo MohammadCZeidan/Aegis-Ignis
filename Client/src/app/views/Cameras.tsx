@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../hooks/useData';
 
 const STREAMING_SERVER = 'http://localhost:5000';
+
 export function Cameras() {
   const queryClient = useQueryClient();
   const [selectedFloor, setSelectedFloor] = useState<string>('all');

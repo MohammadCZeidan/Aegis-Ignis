@@ -12,6 +12,7 @@ export function FloorDetail() {
   const { floorId } = useParams<{ floorId: string }>();
   const navigate = useNavigate();
   
+  
   const { data: floors = [], isLoading: floorsLoading } = useFloors();
   const { data: allCameras = [], isLoading: camerasLoading } = useCameras();
   const { data: occupancyData, isLoading: occupancyLoading } = useFloorOccupancy(parseInt(floorId || '0'));

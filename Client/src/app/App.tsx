@@ -9,6 +9,7 @@ import { GlobalLoader } from './components/GlobalLoader';
 import { Login } from './views/Login';
 import { Landing } from './views/Landing';
 import { Layout } from './components/Layout';
+
 // Lazy load views
 const Dashboard = lazy(() => import('./views/Dashboard').then(m => ({ default: m.Dashboard })));
 const Floors = lazy(() => import('./views/Floors').then(m => ({ default: m.Floors })));

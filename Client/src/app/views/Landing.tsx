@@ -14,6 +14,7 @@ const AnimatedLogo = ({ className }: { className?: string }) => (
   </div>
 );
 
+
 export function Landing({ onGetStarted }: LandingProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 relative overflow-hidden">
