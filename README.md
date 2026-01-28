@@ -83,18 +83,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <br>
 
 ### Machine Learning Development
-
-#### Fire Detection Model
-
-- **Model**: YOLOv8 (YOLOv8n, YOLOv8s, YOLOv8m variants)
-- **Training Dataset**: 100 images expanded to 20,000+ using augmentation
-- **Dataset Split**: 90/10 training/validation split
-
-#### Model Training Process
-
-1. **Dataset Preparation**: Roboflow dataset download and validation
-2. **Data Augmentation**: Copula-based augmentation with perturbation and noise
-3. **Training**: 10-fold cross-validation with early stopping
+ | Model Performance |
+ | ------------------------------------- |
+|<img src="./readme/sql/ml-WORKFLOW.png" " alt="Machine Learning Development" /> |
 
 #### Face Recognition
 
