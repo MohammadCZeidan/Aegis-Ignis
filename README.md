@@ -85,7 +85,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Machine Learning Development
  | Model Performance |
  | ------------------------------------- |
-|<img src="./readme/sql/ml-WORKFLOW.png" " alt="Machine Learning Development" /> |
+|<img src="./readme/sql/ml-WORKFLOW.png" alt="Machine Learning Development" /> |
 
 #### Face Recognition
 
