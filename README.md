@@ -122,12 +122,6 @@ The system uses N8N for intelligent alert routing and multi-channel notification
 
 Workflow configuration available in `n8n-workflow-fire-alert.json`
 <br><br>
-<!-- Extras -->
-<img src="./readme/card-titles/title7.svg"/> 
-
-| Dockers |  Postman |
-| ----------- |  ----------------- |
-| <img src="./readme/sql/Dockers.png" width="420" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="420" alt="Postman" /> |
 ### Additional Tools & Services
 
 | Tool | Purpose |
@@ -137,6 +131,13 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 | **MLFlow** | ML model tracking and registry |
 | **PostgreSQL** | Primary database for all system data |
 | **Docker** | Containerized PostgreSQL deployment |
+<!-- Extras -->
+<img src="./readme/card-titles/title7.svg"/> 
+
+| Dockers |  Postman |
+| ----------- |  ----------------- |
+| <img src="./readme/sql/Dockers.png" width="420" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="420" alt="Postman" /> |
+
 
 <br><br>
 ---
