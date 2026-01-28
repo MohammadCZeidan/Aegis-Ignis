@@ -8,23 +8,13 @@ use Illuminate\Support\Facades\Storage;
 
 class CleanupUnusedPhotos extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+    
     protected $signature = 'photos:cleanup {--dry-run : Preview without deleting} {--force : Skip confirmation}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+   
     protected $description = 'Automatically cleanup unused employee photos not shown on website';
 
-    /**
-     * Execute the console command.
-     */
+    
     public function handle()
     {
         $dryRun = $this->option('dry-run');

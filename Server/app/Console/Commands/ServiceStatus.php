@@ -7,23 +7,13 @@ use Illuminate\Support\Facades\Http;
 
 class ServiceStatus extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+   
     protected $signature = 'services:status';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
+   
     protected $description = 'Check status of all microservices';
 
-    /**
-     * Execute the console command.
-     */
+     
     public function handle()
     {
         $this->info('AEGIS-IGNIS Service Status');

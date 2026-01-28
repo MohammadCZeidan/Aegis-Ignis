@@ -15,11 +15,9 @@ class CleanupAlertImages extends Command
     public function handle()
     {
         $deleteAll = $this->option('all');
-        $days = (int) $this->option('days');
-        
+        $days = (int) $this->option('days'); 
         $this->info('Starting alert images cleanup...');
-        
-        try {
+                try {
             $query = Alert::query();
             
             if (!$deleteAll) {

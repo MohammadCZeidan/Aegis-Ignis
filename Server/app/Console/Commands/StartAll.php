@@ -6,23 +6,12 @@ use Illuminate\Console\Command;
 
 class StartAll extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+   
     protected $signature = 'start:all';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Start Laravel backend and all microservices (one command to rule them all!)';
+       protected $description = 'Start Laravel backend and all microservices (one command to rule them all!)';
 
-    /**
-     * Execute the console command.
-     */
+    
     public function handle()
     {
         $this->info('AEGIS-IGNIS - Unified Laravel Backend');
