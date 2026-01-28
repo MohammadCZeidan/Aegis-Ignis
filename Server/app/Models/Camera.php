@@ -10,14 +10,14 @@ class Camera extends Model
     use HasFactory;
 
     protected $fillable = [
-        'floor_id',
-        'name',
-        'rtsp_url',
-        'position_x',
-        'position_y',
-        'position_z',
-        'calibration_data',
-        'is_active',
+       'floor_id',
+       'name',
+       'rtsp_url',
+       'position_x',
+       'position_y',
+       'position_z',
+       'calibration_data',
+       'is_active',
     ];
 
     protected $casts = [

@@ -10,22 +10,22 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'employee_number',
-        'department',
-        'email',
-        'password',
-        'role',
-        'status',
-        'floor_id',
-        'current_floor_id',
-        'current_room',
-        'face_embedding',
-        'face_photo_path',
-        'face_registered_at',
-        'face_match_confidence',
-        'photo_url',
-        'last_seen_at'
+       'name',
+       'employee_number',
+       'department',
+       'email',
+       'password',
+       'role',
+       'status',
+       'floor_id',
+       'current_floor_id',
+       'current_room',
+       'face_embedding',
+       'face_photo_path',
+       'face_registered_at',
+       'face_match_confidence',
+       'photo_url',
+       'last_seen_at'
     ];
 
     protected $hidden = [

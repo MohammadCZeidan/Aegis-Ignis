@@ -10,20 +10,20 @@ class Alert extends Model
     use HasFactory;
 
     protected $fillable = [
-        'event_type',
-        'floor_id',
-        'fire_event_id',
-        'severity',
-        'status',
-        'resolved_at',
-        'camera_id',
-        'camera_name',
-        'room',
-        'confidence',
-        'fire_type',
-        'screenshot_path',
-        'image', // Add support for base64 image data
-        'detected_at',
+       'event_type',
+       'floor_id',
+       'fire_event_id',
+       'severity',
+       'status',
+       'resolved_at',
+       'camera_id',
+       'camera_name',
+       'room',
+       'confidence',
+       'fire_type',
+       'screenshot_path',
+       'image', // Add support for base64 image data
+       'detected_at',
     ];
 
     protected $casts = [

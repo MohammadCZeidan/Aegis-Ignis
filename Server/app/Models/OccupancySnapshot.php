@@ -10,16 +10,16 @@ class OccupancySnapshot extends Model
     use HasFactory;
 
     protected $fillable = [
-        'floor_id',
-        'person_count',
-        'people_list',
+       'floor_id',
+       'person_count',
+       'people_list',
     ];
 
     protected $casts = [
-        'people_list' => 'array',
-        'timestamp' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+       'people_list' => 'array',
+       'timestamp' => 'datetime',
+       'created_at' => 'datetime',
+       'updated_at' => 'datetime',
     ];
 
     public function floor()

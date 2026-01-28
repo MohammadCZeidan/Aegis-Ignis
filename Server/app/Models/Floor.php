@@ -10,14 +10,14 @@ class Floor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'building_id',
-        'floor_number',
-        'name',
+       'building_id',
+       'floor_number',
+       'name',
     ];
 
     protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+       'created_at' => 'datetime',
+       'updated_at' => 'datetime',
     ];
 
     public function building()

@@ -8,15 +8,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PresenceLog extends Model
 {
     protected $fillable = [
-        'employee_id',
-        'floor_id',
-        'room_location',
-        'camera_id',
-        'confidence',
-        'detection_image_path',
-        'event_type',
-        'detected_at',
-        'metadata'
+       'employee_id',
+       'floor_id',
+       'room_location',
+       'camera_id',
+       'confidence',
+       'detection_image_path',
+       'event_type',
+       'detected_at',
+       'metadata'
     ];
 
     protected $casts = [
