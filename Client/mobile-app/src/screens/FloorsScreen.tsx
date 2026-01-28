@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import api, {Floor} from '../services/api';
-
 const FloorsScreen: React.FC = () => {
   const [floors, setFloors] = useState<Floor[]>([]);
   const [loading, setLoading] = useState(true);

@@ -8,7 +8,6 @@ export interface Floor {
   floor_number: number;
   name: string | null;
 }
-
 export interface Camera {
   id: number;
   floor_id: number;

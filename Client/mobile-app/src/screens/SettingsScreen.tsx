@@ -12,7 +12,6 @@ import {useNavigation} from '@react-navigation/native';
 
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
-
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       {text: 'Cancel', style: 'cancel'},

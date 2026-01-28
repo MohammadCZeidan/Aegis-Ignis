@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import api, {Alert as AlertType, Floor} from '../services/api';
-
 const DashboardScreen: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);

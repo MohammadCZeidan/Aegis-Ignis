@@ -11,7 +11,6 @@ import {
   Alert,
 } from 'react-native';
 import api, {Camera} from '../services/api';
-
 const CamerasScreen: React.FC = () => {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [loading, setLoading] = useState(true);

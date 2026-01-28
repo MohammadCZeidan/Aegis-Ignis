@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import api from '../services/api';
 import {useNavigation} from '@react-navigation/native';
-
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
