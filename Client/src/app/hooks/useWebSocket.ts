@@ -11,7 +11,6 @@ export function useWebSocket(url: string) {
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-
   const connect = useCallback(() => {
     try {
       const wsUrl = url.startsWith('ws') ? url : `ws://${window.location.hostname}:8000${url}`;

@@ -8,7 +8,6 @@
  */
 
 type LoadingListener = (isLoading: boolean, message?: string) => void;
-
 class LoadingService {
   private listeners: Set<LoadingListener> = new Set();
   private loadingCount = 0;

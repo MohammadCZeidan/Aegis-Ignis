@@ -9,7 +9,6 @@
  */
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
-
 interface NotificationOptions {
   title?: string;
   description?: string;

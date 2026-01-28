@@ -18,7 +18,6 @@ export function Layout() {
     if (path === 'monitoring') return 'floor-monitoring';
     return path;
   };
-
   const handleViewChange = (view: string) => {
     const routes: Record<string, string> = {
       dashboard: '/',

@@ -9,7 +9,6 @@ import { useFloors, useAlerts, useAcknowledgeAlert } from '../hooks/useData';
 
 const LARAVEL_API_URL = API_CONFIG.BACKEND_API;
 const LARAVEL_BASE_URL = API_CONFIG.BACKEND_API.replace('/api/v1', '');
-
 interface Alert {
   id: number;
   event_type: string;

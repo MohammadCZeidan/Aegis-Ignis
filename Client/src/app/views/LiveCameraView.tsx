@@ -14,7 +14,6 @@ interface CameraFeed {
   status: 'online' | 'offline';
   stream_url?: string;
 }
-
 interface Detection {
   type: 'fire' | 'face';
   confidence: number;

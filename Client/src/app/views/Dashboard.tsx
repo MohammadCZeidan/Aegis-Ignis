@@ -12,7 +12,6 @@ interface MetricCardProps {
   subtitle?: string;
   onClick?: () => void;
 }
-
 const MetricCard = memo(function MetricCard({ title, value, icon: Icon, status, subtitle, onClick }: MetricCardProps) {
   const statusColors = {
     normal: 'bg-green-50 border-green-200 text-green-700',

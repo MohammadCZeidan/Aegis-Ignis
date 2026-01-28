@@ -10,7 +10,6 @@ interface FloorData {
   name: string;
   level: number;
 }
-
 interface FireDetection {
   id: number;
   camera_id: number;

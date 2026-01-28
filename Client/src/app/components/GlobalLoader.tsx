@@ -17,7 +17,6 @@ export function GlobalLoader() {
       setIsLoading(loading);
       setMessage(msg || 'Loading...');
     });
-
     return unsubscribe;
   }, []);
 

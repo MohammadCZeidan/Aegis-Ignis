@@ -18,7 +18,6 @@ export function NotificationContainer() {
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         return;
       }
-
       setNotifications(prev => [...prev, notification]);
 
       // Auto-dismiss after duration

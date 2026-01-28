@@ -13,7 +13,6 @@ export const queryKeys = {
   floorOccupancy: (floorId: number) => ['occupancy', floorId] as const,
   alerts: ['alerts'] as const,
 };
-
 // Floors
 export function useFloors() {
   return useQuery({

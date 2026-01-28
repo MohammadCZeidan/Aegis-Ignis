@@ -13,9 +13,7 @@ export function Logo({ className = "h-10 w-10" }: { className?: string }) {
       {/* Split Shield */}
       <path d="M256 48L112 104V240C112 356 256 460 256 460V48Z" fill="#2980B9"/>
       <path d="M256 48V460C256 460 400 356 400 240V104L256 48Z" fill="#1E3A5F"/>
-      
-      {/* Circuit Board Pattern (Left) */}
-      <circle cx="180" cy="180" r="8" fill="#3498DB" opacity="0.6"/>
+       <circle cx="180" cy="180" r="8" fill="#3498DB" opacity="0.6"/>
       <circle cx="200" cy="200" r="6" fill="#3498DB" opacity="0.6"/>
       <circle cx="160" cy="220" r="6" fill="#3498DB" opacity="0.6"/>
       <line x1="180" y1="180" x2="200" y2="200" stroke="#3498DB" strokeWidth="2" opacity="0.6"/>

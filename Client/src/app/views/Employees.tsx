@@ -13,7 +13,6 @@ export function Employees() {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-
   useEffect(() => {
     loadEmployees();
   }, [selectedFloor]);
