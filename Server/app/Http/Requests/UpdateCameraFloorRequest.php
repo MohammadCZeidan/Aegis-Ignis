@@ -14,7 +14,7 @@ class UpdateCameraFloorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'floor_id' => 'required|integer|exists:floors,id'
+           'floor_id' => 'required|integer|exists:floors,id'
         ];
     }
 }

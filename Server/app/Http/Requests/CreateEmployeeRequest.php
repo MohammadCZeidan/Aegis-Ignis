@@ -14,12 +14,12 @@ class CreateEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'employee_number' => 'required|string|unique:employees,employee_number',
-            'department' => 'required|string|max:255',
-            'email' => 'required|email|unique:employees,email',
-            'password' => 'required|string|min:6',
-            'role' => 'nullable|string|in:admin,employee'
+           'name' => 'required|string|max:255',
+           'employee_number' => 'required|string|unique:employees,employee_number',
+           'department' => 'required|string|max:255',
+           'email' => 'required|email|unique:employees,email',
+           'password' => 'required|string|min:6',
+           'role' => 'nullable|string|in:admin,employee'
         ];
     }
 }

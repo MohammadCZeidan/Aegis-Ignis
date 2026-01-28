@@ -14,8 +14,8 @@ class IdentifyFaceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'embedding' => 'required|array',
-            'threshold' => 'nullable|numeric|min:0|max:1',
+           'embedding' => 'required|array',
+           'threshold' => 'nullable|numeric|min:0|max:1',
         ];
     }
 }

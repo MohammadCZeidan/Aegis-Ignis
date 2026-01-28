@@ -14,12 +14,12 @@ class RegisterFaceEmbeddingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'embedding' => 'nullable|array',
-            'confidence' => 'required|numeric|min:0|max:1',
-            'bbox' => 'nullable|array',
-            'image_data' => 'required|string',
-            'floor_id' => 'required|exists:floors,id',
-            'room_location' => 'required|string'
+           'embedding' => 'nullable|array',
+           'confidence' => 'required|numeric|min:0|max:1',
+           'bbox' => 'nullable|array',
+           'image_data' => 'required|string',
+           'floor_id' => 'required|exists:floors,id',
+           'room_location' => 'required|string'
         ];
     }
 }

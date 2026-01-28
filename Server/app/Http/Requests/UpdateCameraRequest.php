@@ -6,19 +6,14 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateCameraRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+   
     public function authorize(): bool
     {
         // Allow if user is admin OR if user is authenticated (for settings updates)
         return $this->user() && ($this->user()->role === 'admin' || auth()->check());
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
-    public function rules(): array
+      public function rules(): array
     {
         return [
             'floor_id' => 'sometimes|exists:floors,id',

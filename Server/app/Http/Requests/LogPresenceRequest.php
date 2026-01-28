@@ -14,13 +14,13 @@ class LogPresenceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => 'required|exists:employees,id',
-            'floor_id' => 'nullable|exists:floors,id',
-            'room_location' => 'nullable|string',
-            'camera_id' => 'nullable|string',
-            'confidence' => 'required|numeric|min:0|max:100',
-            'detection_image' => 'nullable|string',
-            'event_type' => 'nullable|in:entry,exit,movement,detected'
+           'employee_id' => 'required|exists:employees,id',
+           'floor_id' => 'nullable|exists:floors,id',
+           'room_location' => 'nullable|string',
+           'camera_id' => 'nullable|string',
+           'confidence' => 'required|numeric|min:0|max:100',
+           'detection_image' => 'nullable|string',
+           'event_type' => 'nullable|in:entry,exit,movement,detected'
         ];
     }
 }

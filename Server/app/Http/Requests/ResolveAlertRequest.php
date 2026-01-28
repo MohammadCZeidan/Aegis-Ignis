@@ -14,7 +14,7 @@ class ResolveAlertRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'is_false_alarm' => 'nullable|boolean'
+           'is_false_alarm' => 'nullable|boolean'
         ];
     }
 }

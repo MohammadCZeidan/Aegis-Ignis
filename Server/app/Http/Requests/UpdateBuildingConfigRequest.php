@@ -14,8 +14,8 @@ class UpdateBuildingConfigRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'total_floors' => 'required|integer|min:1|max:100',
+           'name' => 'required|string|max:255',
+           'total_floors' => 'required|integer|min:1|max:100',
         ];
     }
 }
