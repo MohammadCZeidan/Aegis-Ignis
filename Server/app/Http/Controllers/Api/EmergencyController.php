@@ -15,7 +15,6 @@ class EmergencyController extends Controller
         private readonly EmergencyService $emergencyService
     ) {
     }
-
     public function createFireAlert(CreateFireAlertRequest $request): JsonResponse
     {
         $alert = $this->emergencyService->createFireAlert($request->validated());

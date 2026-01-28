@@ -20,7 +20,6 @@ class OccupancyController extends Controller
     public function summary()
     {
         $summary = $this->occupancyService->getSummary();
-
         return response()->json($summary);
     }
 

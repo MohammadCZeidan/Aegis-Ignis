@@ -20,7 +20,6 @@ class FireDetectionController extends Controller
     public function reportDetection(ReportFireDetectionRequest $request): JsonResponse
     {
         $result = $this->fireDetectionService->reportDetection($request->validated());
-
         return response()->json([
             'success' => true,
             'fire_event_id' => $result['fire_event']->id ?? null,

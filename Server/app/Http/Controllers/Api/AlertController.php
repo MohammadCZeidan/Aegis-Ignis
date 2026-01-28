@@ -75,8 +75,7 @@ class AlertController extends Controller
         if ($request->has('event_type')) {
             $filters['event_type'] = $request->event_type;
         }
-        
-        if ($request->has('floor_id')) {
+              if ($request->has('floor_id')) {
             $filters['floor_id'] = (int) $request->floor_id;
         }
         

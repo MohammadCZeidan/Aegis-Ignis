@@ -21,7 +21,6 @@ class HealthController extends Controller
             'redis' => $this->checkRedis(),
             'face_service' => $this->checkFaceService($faceServiceClient),
         ];
-
         $allHealthy = collect($checks)->every(fn($check) => $check['status'] === 'healthy');
 
         return response()->json([

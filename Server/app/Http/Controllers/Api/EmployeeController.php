@@ -19,7 +19,6 @@ class EmployeeController extends Controller
         private readonly EmployeeService $employeeService
     ) {
     }
-
     public function index(Request $request): JsonResponse
     {
         $employees = \App\Models\Employee::with('floor')->get();
