@@ -10,8 +10,7 @@ class EnsureEmailIsVerified
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // For API, we skip email verification
-        return $next($request);
+               return $next($request);
     }
 }
 

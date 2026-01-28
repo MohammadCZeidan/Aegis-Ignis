@@ -15,9 +15,7 @@ class LogApiRequests
     public function handle(Request $request, Closure $next): Response
     {
         $startTime = microtime(true);
-        
-        // Log request
-        Log::info('API Request', [
+            Log::info('API Request', [
             'method' => $request->method(),
             'url' => $request->fullUrl(),
             'ip' => $request->ip(),
