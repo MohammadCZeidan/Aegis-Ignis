@@ -87,12 +87,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
  | ------------------------------------- |
 |<img src="./readme/sql/ml-WORKFLOW.png" alt="Machine Learning Development" /> |
 
-#### Face Recognition
 
-- **Model**: InsightFace (ArcFace architecture)
-- **Embedding Dimension**: 512-dimensional vectors
-- **Performance**: Sub-second identification with 99%+ accuracy
-- **Features**: Duplicate detection, caching, batch processing
 
 | Training Dataset | Model Performance |
 | --------------------------------------- | ------------------------------------- |
