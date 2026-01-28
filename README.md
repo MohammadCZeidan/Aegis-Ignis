@@ -14,7 +14,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 > Aegis-Ignis is an intelligent smart building security system that combines real-time fire detection, face recognition, and occupancy monitoring <br>
 >The system provides instant visibility, intelligent alerts, and rapid emergency response through a unified platform that keeps people safe and assets protected.
 
-
+<br>
 <!-- System Design -->
 <img src="./readme/card-titles/title3.svg"/>
 
@@ -65,6 +65,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | ---------------------------------------| 
 | <img src="./readme/gif/MObile.gif" />  |
 
+<br><br>
 
 <!-- Development & Testing -->
 <img src="./readme/card-titles/title6.svg"/>
@@ -131,6 +132,8 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 | **MLFlow** | ML model tracking and registry |
 | **PostgreSQL** | Primary database for all system data |
 | **Docker** | Containerized PostgreSQL deployment |
+
+<br><br>
 <!-- Extras -->
 <img src="./readme/card-titles/title7.svg"/> 
 
