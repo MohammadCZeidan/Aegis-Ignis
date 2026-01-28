@@ -72,9 +72,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Tests
 
-| CI/CD Pipeline | Test Coverage |
-| --------------------------------------- | ------------------------------------- |
-| ![CI/CD](./readme/sql/CiCd.png) | ![CI/CD](./readme/sql/tests.png) |
+ | Test Coverage |
+ | ------------------------------------- |
+ | ![CI/CD](./readme/sql/tests.png) |
 
 - **Backend tests**: `cd Server && php artisan test`
 - **Python services**: Unit tests for ML models and detection algorithms
@@ -138,9 +138,14 @@ Workflow configuration available in `n8n-workflow-fire-alert.json`
 <img src="./readme/card-titles/title7.svg"/> 
 
 | Dockers |  Postman |
-| ----------- |  ----------------- |
-| <img src="./readme/sql/Dockers.png" width="420" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="420" alt="Postman" /> |
+| ----------- |  ----------------- | 
+| <img src="./readme/sql/Dockers.png" width="420" alt="Dockers" /> |  <img src="./readme/sql/postman.png" width="420" alt="Postman" /> | 
 
+<br>
+
+ | CI/CD Pipeline |
+ | ----------------- |
+ | ![CI/CD](./readme/sql/CiCd.png)
 
 <br><br>
 ---
