@@ -11,7 +11,6 @@ import logging
 import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from config import ServiceConfig
 from cache import ThreadSafeCache
 from face_detector import INSIGHTFACE_AVAILABLE

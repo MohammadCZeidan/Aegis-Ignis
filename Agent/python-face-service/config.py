@@ -13,8 +13,7 @@ class ServiceConfig:
     """Configuration constants for the face recognition service."""
     LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000').rstrip('/api/v1')
     
-    # Face matching threshold (0.0-1.0)
-    # Lower values catch more potential duplicates but may have false positives
+
     FACE_MATCH_THRESHOLD = 0.40
     
     # Cache refresh interval in seconds

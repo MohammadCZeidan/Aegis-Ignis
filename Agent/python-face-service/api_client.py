@@ -7,7 +7,6 @@ from config import ServiceConfig
 
 logger = logging.getLogger(__name__)
 
-
 def fetch_employees_from_api() -> Optional[List[Dict]]:
     """
     Fetch employees from Laravel API with retry logic.

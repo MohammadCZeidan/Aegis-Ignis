@@ -7,7 +7,6 @@ from PIL import Image
 from io import BytesIO
 from config import ServiceConfig
 
-
 def image_to_numpy(file_bytes: bytes, max_size: int = None) -> np.ndarray:
     """
     Convert image bytes to numpy array.

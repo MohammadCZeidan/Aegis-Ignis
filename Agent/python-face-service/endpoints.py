@@ -31,7 +31,6 @@ class FaceDetectionResponse(BaseModel):
     ideal_head_position: Optional[dict] = None
     message: str = ""
 
-
 def register_endpoints(app: FastAPI, cache: ThreadSafeCache):
     """Register all API endpoints."""
     
