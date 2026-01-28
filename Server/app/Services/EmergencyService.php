@@ -15,8 +15,7 @@ class EmergencyService
             logger()->info('Rejected low confidence detection', [
                 'confidence' => $data['confidence'],
                 'camera_id' => $data['camera_id'] ?? null
-            ]);
-            
+            ]);      
             return null;
         }
 

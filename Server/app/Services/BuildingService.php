@@ -14,7 +14,6 @@ class BuildingService
         if (!$building) {
             $building = $this->createDefaultBuilding();
         }
-        
         return $building;
     }
     

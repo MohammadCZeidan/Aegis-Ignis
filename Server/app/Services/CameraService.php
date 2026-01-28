@@ -21,8 +21,7 @@ class CameraService
     public function getCameraById(int $id): array
     {
         $camera = Camera::with('floor')->findOrFail($id);
-        
-        return [
+          return [
             'success' => true,
             'data' => $camera
         ];

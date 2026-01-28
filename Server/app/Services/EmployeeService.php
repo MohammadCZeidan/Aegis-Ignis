@@ -17,10 +17,7 @@ class EmployeeService
     {
         $this->faceRecognitionService = $faceRecognitionService;
     }
-
-    /**
-     * Get all employees with optional filtering
-     */
+  
     
     public function getAllEmployees(?int $floorId = null)
     {

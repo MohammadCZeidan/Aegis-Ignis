@@ -14,7 +14,6 @@ class AlertService
     {
         try {
             $query = Alert::with(['floor', 'fireEvent']);
-
             $this->applyFilters($query, $filters);
 
             $alerts = $query->orderBy('created_at', 'desc')

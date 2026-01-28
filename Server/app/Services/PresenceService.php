@@ -29,7 +29,6 @@ class PresenceService
         ]);
 
         $this->updateEmployeeLocation($data['employee_id'], $data);
-
         return $log;
     }
 

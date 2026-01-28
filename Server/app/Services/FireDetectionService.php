@@ -99,7 +99,6 @@ class FireDetectionService
         
         Log::info("Fire detection ACCEPTED: {$data['confidence']}% with screenshot");
     }
-
     private function hasNoScreenshot(array $data): bool
     {
         return empty($data['screenshot_path']) && 
