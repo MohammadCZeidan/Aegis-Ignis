@@ -8,7 +8,6 @@ interface AppContextType {
   buildingName: string;
   setBuildingName: (name: string) => void;
 }
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {

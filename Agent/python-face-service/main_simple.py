@@ -11,7 +11,6 @@ import cv2
 from PIL import Image
 from io import BytesIO
 import logging
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

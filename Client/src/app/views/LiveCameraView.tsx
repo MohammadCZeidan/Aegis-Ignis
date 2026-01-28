@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Camera, Flame, Users, AlertCircle, Play, Pause, RefreshCw } from 'lucide-react';
 import { API_CONFIG, buildBackendUrl } from '../../config/api';
 
+
 interface CameraFeed {
   id: string;
   name: string;
@@ -14,7 +15,6 @@ interface CameraFeed {
   status: 'online' | 'offline';
   stream_url?: string;
 }
-
 interface Detection {
   type: 'fire' | 'face';
   confidence: number;

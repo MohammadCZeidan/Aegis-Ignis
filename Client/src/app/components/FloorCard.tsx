@@ -16,7 +16,6 @@ const FloorCardComponent = ({ floor, onViewDetails }: FloorCardProps) => {
     warning: { color: 'bg-orange-500', label: 'Warning', variant: 'outline' as const },
     critical: { color: 'bg-red-500', label: 'Critical', variant: 'destructive' as const }
   };
-
   const config = statusConfig[floor.status];
   const occupancyPercentage = (floor.occupancy / floor.maxOccupancy) * 100;
 

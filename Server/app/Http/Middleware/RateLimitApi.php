@@ -16,7 +16,6 @@ class RateLimitApi
     {
         $key = $this->resolveRequestSignature($request);
         
-        // Limit: 60 requests per minute
         $maxAttempts = 60;
         $decayMinutes = 1;
         

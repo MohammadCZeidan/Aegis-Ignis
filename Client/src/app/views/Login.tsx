@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Shield, Loader2, Sparkles, Lock } from 'lucide-react';
 import logo from '../../assets/aegis-logo.png';
 
+
 export function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();

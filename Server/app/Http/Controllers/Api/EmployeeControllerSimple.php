@@ -30,8 +30,7 @@ class EmployeeControllerSimple extends Controller
                 'updated_at' => $employee->updated_at,
             ];
         });
-        
-        return response()->json([
+                return response()->json([
             'employees' => $employees,
             'total' => $employees->count(),
         ]);

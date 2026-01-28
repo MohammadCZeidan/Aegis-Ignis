@@ -14,7 +14,6 @@ from api_client import fetch_employees_from_api
 
 logger = logging.getLogger(__name__)
 
-
 @contextmanager
 def timeout_context(seconds):
     """Context manager for timeout (Windows-compatible)."""

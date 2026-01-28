@@ -7,7 +7,6 @@ from datetime import datetime
 import numpy as np
 from config import ServiceConfig
 
-
 class ThreadSafeCache:
     """Thread-safe cache for employee embeddings."""
     

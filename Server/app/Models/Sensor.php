@@ -10,11 +10,11 @@ class Sensor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'floor_id',
-        'sensor_type',
-        'location_x',
-        'location_y',
-        'is_active',
+       'floor_id',
+       'sensor_type',
+       'location_x',
+       'location_y',
+       'is_active',
     ];
 
     protected $casts = [

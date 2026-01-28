@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import api, {Alert as AlertType} from '../services/api';
 import {getStorageUrl} from '../config/api';
-
 const AlertsScreen: React.FC = () => {
   const [alerts, setAlerts] = useState<AlertType[]>([]);
   const [loading, setLoading] = useState(true);

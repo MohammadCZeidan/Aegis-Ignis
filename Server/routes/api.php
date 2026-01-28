@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Health check endpoints
+
 Route::get('/health', [App\Http\Controllers\Api\HealthController::class, 'index']);
 Route::get('/ping', [App\Http\Controllers\Api\HealthController::class, 'ping']);
 

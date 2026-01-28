@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { dataService, Employee } from '../services/dataService';
+
 import { API_CONFIG, getStorageUrl } from '../../config/api';
 
 export function Employees() {
@@ -13,7 +14,6 @@ export function Employees() {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-
   useEffect(() => {
     loadEmployees();
   }, [selectedFloor]);

@@ -4,7 +4,6 @@
  */
 
 const BACKEND_API = import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:8000/api/v1';
-
 export interface Employee {
   id: string;
   name: string;

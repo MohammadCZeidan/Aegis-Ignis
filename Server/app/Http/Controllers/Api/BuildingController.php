@@ -13,7 +13,6 @@ class BuildingController extends Controller
         private readonly BuildingService $buildingService
     ) {
     }
-
     public function getConfig(): JsonResponse
     {
         $building = $this->buildingService->getConfig();
@@ -34,8 +33,7 @@ class BuildingController extends Controller
             'data' => $building
         ]);
     }
-    
-    public function deleteAllAlerts(): JsonResponse
+        public function deleteAllAlerts(): JsonResponse
     {
         try {
             $deletedCount = $this->buildingService->deleteAllAlerts();

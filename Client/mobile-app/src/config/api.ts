@@ -11,7 +11,6 @@ const getBackendApiUrl = (): string => {
     return BACKEND_API_URL;
   }
 
-  // Fallback defaults based on platform
   if (__DEV__) {
     // Development mode
     const host = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';

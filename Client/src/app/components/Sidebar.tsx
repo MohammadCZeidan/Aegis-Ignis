@@ -12,8 +12,7 @@ interface SidebarProps {
 
 export function Sidebar({ currentView, onViewChange, collapsed, onToggleCollapse }: SidebarProps) {
   const isAdmin = authService.isAdmin();
-  
-  const menuItems = [
+    const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'floors', label: 'Floors', icon: Building2 },
     { id: 'floor-monitoring', label: 'Floor Monitoring', icon: Activity },

@@ -39,7 +39,6 @@ class PresenceController extends Controller
                     'person_count' => $count
                 ]);
             }
-            
             $perPage = $request->input('per_page', 15);
             $employees = $this->presenceService->getPeopleByFloor($floorId, $perPage);
 

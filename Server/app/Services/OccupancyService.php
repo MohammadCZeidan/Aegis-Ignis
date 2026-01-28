@@ -28,9 +28,7 @@ class OccupancyService
         ];
     }
 
-    /**
-     * Get occupancy by floor
-     */
+   
     public function getByFloor(int $floorId): array
     {
         $snapshot = OccupancySnapshot::where('floor_id', $floorId)

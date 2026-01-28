@@ -18,7 +18,6 @@ class CameraController extends Controller
     {
         $this->cameraService = $cameraService;
     }
-
     public function index(Request $request): JsonResponse
     {
         $floorId = $this->extractFloorIdFromRequest($request);

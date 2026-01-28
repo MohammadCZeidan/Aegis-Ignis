@@ -269,10 +269,10 @@ class CameraDetectionService:
     def detect_faces(self, frame: np.ndarray) -> List[Dict]:
         """Send frame to face detection service and identify people"""
         try:
-            # Encode frame
+           
             _, img_encoded = cv2.imencode('.jpg', frame)
             
-            # Detect faces
+         
             files = {'file': ('frame.jpg', img_encoded.tobytes(), 'image/jpeg')}
             response = self.session.post(
                 f"{CONFIG['face_service']}/detect-faces",

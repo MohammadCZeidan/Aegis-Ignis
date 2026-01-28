@@ -7,33 +7,21 @@ use Illuminate\Support\Facades\Process;
 
 class StopServices extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+   
     protected $signature = 'services:stop 
                             {--face : Stop face recognition service}
                             {--fire : Stop fire detection service}
                             {--all : Stop all services}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Stop Python microservices';
 
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
         $stopAll = $this->option('all');
         $stopFace = $this->option('face') || $stopAll;
         $stopFire = $this->option('fire') || $stopAll;
 
-        $this->info('🛑 Stopping AEGIS-IGNIS Services...');
+        $this->info(' Stopping AEGIS-IGNIS Services...');
         $this->newLine();
 
         if ($stopFace) {

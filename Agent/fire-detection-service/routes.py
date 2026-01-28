@@ -25,7 +25,7 @@ from services.alert_manager import AlertManager
 
 logger = logging.getLogger(__name__)
 
-# Initialize detectors and alert manager
+
 ml_detector = MLFireDetector(
     model_path=Config.ML_MODEL_PATH if Config.USE_ML_DETECTION else None,
     confidence_threshold=Config.CONFIDENCE_THRESHOLD,

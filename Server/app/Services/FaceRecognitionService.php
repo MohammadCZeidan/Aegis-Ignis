@@ -17,10 +17,7 @@ class FaceRecognitionService
         $this->faceServiceClient = $faceServiceClient;
     }
 
-    /**
-     * Detect face and extract embedding from image
-     * Uses the FaceServiceClient gateway with retry logic and circuit breaker
-     */
+  
     public function detectAndExtractFace(UploadedFile $image): ?array
     {
         $result = $this->faceServiceClient->detectFace($image);

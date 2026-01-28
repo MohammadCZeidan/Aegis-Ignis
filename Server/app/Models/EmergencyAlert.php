@@ -8,23 +8,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EmergencyAlert extends Model
 {
     protected $fillable = [
-        'alert_type',
-        'severity',
-        'floor_id',
-        'room_location',
-        'camera_id',
-        'description',
-        'detection_image_path',
-        'confidence',
-        'people_count',
-        'affected_employees',
-        'detected_at',
-        'acknowledged_at',
-        'resolved_at',
-        'police_notified',
-        'police_notified_at',
-        'ai_message',
-        'status'
+       'alert_type',
+       'severity',
+       'floor_id',
+       'room_location',
+       'camera_id',
+       'description',
+       'detection_image_path',
+       'confidence',
+       'people_count',
+       'affected_employees',
+       'detected_at',
+       'acknowledged_at',
+       'resolved_at',
+       'police_notified',
+       'police_notified_at',
+       'ai_message',
+       'status'
     ];
 
     protected $casts = [

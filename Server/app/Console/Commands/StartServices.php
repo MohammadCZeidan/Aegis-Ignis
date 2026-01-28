@@ -7,26 +7,14 @@ use Illuminate\Support\Facades\Process;
 
 class StartServices extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
+   
     protected $signature = 'services:start 
                             {--face : Start face recognition service}
                             {--fire : Start fire detection service}
                             {--all : Start all services}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
     protected $description = 'Start Python microservices (face recognition, fire detection)';
 
-    /**
-     * Execute the console command.
-     */
     public function handle()
     {
         $projectRoot = base_path('..');

@@ -36,7 +36,6 @@ from services.alert_manager import AlertManager
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ENV_PATH = os.path.join(PROJECT_ROOT, "env", ".env")
 load_dotenv(dotenv_path=ENV_PATH if os.path.exists(ENV_PATH) else None)
-# Load repo root .env so N8N_WEBHOOK_URL, Twilio, BACKEND_API_URL from root are used
 load_dotenv(dotenv_path=os.path.join(_repo_root, ".env"))
 
 logging.basicConfig(

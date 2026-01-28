@@ -9,7 +9,6 @@ interface AlertCardProps {
   onAcknowledge?: (alertId: string) => void;
   compact?: boolean;
 }
-
 export function AlertCard({ alert, onAcknowledge, compact = false }: AlertCardProps) {
   const floor = getFloorById(alert.floorId);
   const camera = getCameraById(alert.cameraId);

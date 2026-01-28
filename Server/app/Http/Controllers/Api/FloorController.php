@@ -22,7 +22,6 @@ class FloorController extends Controller
     public function index()
     {
         $floors = $this->floorService->getAllFloors();
-
         return response()->json($floors);
     }
 

@@ -16,8 +16,7 @@ class AlertCleanupService
             if (!$deleteAll) {
                 $query->where('created_at', '<=', now()->subDays($days));
             }
-            
-            $alerts = $query->get();
+                        $alerts = $query->get();
             $deletedCount = 0;
             $filesDeleted = 0;
             

@@ -14,9 +14,7 @@ class FloorService
         return Floor::with('building')->get();
     }
 
-    /**
-     * Get floor by ID with relations
-     */
+  
     public function getFloorById(int $id)
     {
         return Floor::with(['building', 'cameras', 'sensors', 'employees'])->findOrFail($id);

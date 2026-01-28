@@ -14,7 +14,6 @@ interface CameraCardProps {
   fireDetections?: FireDetection[];
   faceDetections?: FaceDetection[];
 }
-
 function CameraCardComponent({ camera, onFullscreen, fireDetections = [], faceDetections = [] }: CameraCardProps) {
   const isOnline = camera.status === 'online';
   const streamUrl = camera.streamUrl || `${STREAMING_SERVER}/video_feed/${camera.id}`;

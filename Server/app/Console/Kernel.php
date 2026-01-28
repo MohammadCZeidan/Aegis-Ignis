@@ -11,8 +11,7 @@ class Kernel extends ConsoleKernel
 
     protected function schedule(Schedule $schedule): void
     {
-        // Automatic Photo Cleanup - Runs daily at 2 AM
-        // Deletes any photos not shown on the website
+
         $schedule->command('photos:cleanup --force')
             ->dailyAt('02:00')
             ->withoutOverlapping()

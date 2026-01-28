@@ -15,7 +15,7 @@ load_dotenv(dotenv_path=ENV_PATH if os.path.exists(ENV_PATH) else None)
 class Config:
     """Centralized configuration for Fire Detection Service"""
     
-    # Service Configuration
+   
     PORT: int = int(os.getenv('PORT', '8002'))
     BACKEND_API_URL: str = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
     

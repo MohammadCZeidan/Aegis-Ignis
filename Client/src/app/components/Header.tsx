@@ -16,7 +16,6 @@ import {
 interface HeaderProps {
   onLogout: () => void;
 }
-
 export function Header({ onLogout }: HeaderProps) {
   const { buildingName } = useApp();
   const currentTime = new Date().toLocaleTimeString('en-US', { 

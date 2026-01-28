@@ -10,7 +10,7 @@ print("   FIRE DETECTION SENSITIVITY TEST")
 print("=" * 60)
 print()
 
-# Simulate a bright flame (like in your images)
+
 test_frame = np.zeros((480, 640, 3), dtype=np.uint8)
 
 # Create a bright spot (simulating lighter flame)
@@ -25,7 +25,7 @@ hsv = cv2.cvtColor(test_frame, cv2.COLOR_BGR2HSV)
 print("Testing color ranges...")
 print()
 
-# Test bright white detection (NEW - for lighters)
+
 lower_white = np.array([0, 0, 170])
 upper_white = np.array([180, 90, 255])
 mask_white = cv2.inRange(hsv, lower_white, upper_white)

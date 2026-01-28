@@ -5,7 +5,6 @@ import logging
 from config import ServiceConfig
 
 logger = logging.getLogger(__name__)
-
 face_detector = None
 INSIGHTFACE_AVAILABLE = False
 
