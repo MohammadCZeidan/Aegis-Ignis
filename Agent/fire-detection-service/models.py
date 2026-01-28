@@ -4,7 +4,6 @@ Pydantic models for Fire Detection Service
 from pydantic import BaseModel
 from typing import List, Optional
 
-
 class FireDetectionResult(BaseModel):
     """Fire detection result model"""
     detected: bool
