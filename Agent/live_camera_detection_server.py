@@ -41,7 +41,7 @@ LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
 N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL')
 ML_MODEL_PATH = os.getenv('ML_MODEL_PATH', 'ml_models/weights/fire_detection.pt')
 USE_ML_DETECTION = os.getenv('USE_ML_DETECTION', 'true').lower() == 'true'
-CAMERA_CONFIG_FILE = "camera_config.json"
+CAMERA_CONFIG_FILE = os.path.join(_repo_root, "camera_config.json")
 
 # Initialize ML fire detector and alert manager
 ml_fire_detector = MLFireDetector(
