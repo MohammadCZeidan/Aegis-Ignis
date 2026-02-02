@@ -68,7 +68,7 @@ active_cameras = {}  # {camera_id: cv2.VideoCapture}
 camera_locks = {}  # {camera_id: Lock}
 last_fire_alert_time = {}  # {camera_id: timestamp}
 FIRE_ALERT_COOLDOWN = 30  # seconds
-CAMERA_CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "camera_config.json")
+CAMERA_CONFIG_FILE = os.path.join(_repo_root, "camera_config.json")
 
 # Initialize ML detector and alert manager
 print("\n" + "="*80)

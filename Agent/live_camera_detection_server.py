@@ -1,9 +1,9 @@
 """
-Live Camera Detection & Streaming Server with ML Integration
+Live Camera Detection & Streaming Server
 - Real-time camera streaming to dashboard
 - Face recognition with person tracking (5-minute timeout)
-- ML-based fire detection with N8N alert integration
-- Integration with Laravel backend for alerts
+- Fire detection is handled by the fire-detection service (main_ml) only, not here.
+  Set ENABLE_FIRE_DETECTION_IN_STREAM=true to also run fire detection in this server.
 """
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
@@ -33,6 +33,9 @@ load_dotenv(dotenv_path=ENV_PATH if os.path.exists(ENV_PATH) else None)
 # Load repo root .env so N8N_WEBHOOK_URL, Twilio, BACKEND_API_URL from root are used
 load_dotenv(dotenv_path=os.path.join(_repo_root, ".env"))
 
+# Fire detection in stream: off by default (only fire-detection service runs ML)
+ENABLE_FIRE_DETECTION_IN_STREAM = os.getenv('ENABLE_FIRE_DETECTION_IN_STREAM', 'false').lower() == 'true'
+
 app = Flask(__name__)
 CORS(app)
 # Configuration
@@ -41,7 +44,7 @@ LARAVEL_API_URL = os.getenv('BACKEND_API_URL', 'http://localhost:8000/api/v1')
 N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL')
 ML_MODEL_PATH = os.getenv('ML_MODEL_PATH', 'ml_models/weights/fire_detection.pt')
 USE_ML_DETECTION = os.getenv('USE_ML_DETECTION', 'true').lower() == 'true'
-CAMERA_CONFIG_FILE = "camera_config.json"
+CAMERA_CONFIG_FILE = os.path.join(_repo_root, "camera_config.json")
 
 # Initialize ML fire detector and alert manager
 ml_fire_detector = MLFireDetector(
@@ -53,10 +56,10 @@ ml_fire_detector = MLFireDetector(
 alert_manager = AlertManager(n8n_webhook_url=N8N_WEBHOOK_URL)
 
 print("="*80)
-print("LIVE CAMERA DETECTION & STREAMING SERVER - ML ENABLED")
+print("LIVE CAMERA DETECTION & STREAMING SERVER")
 print("="*80)
-print(f" Fire Detection Method: {ml_fire_detector.get_detection_method()}")
-print(f" ML Model Available: {ml_fire_detector.is_ml_available()}")
+print(f" Fire detection in stream: {'ON (use fire-detection service only for ML)' if ENABLE_FIRE_DETECTION_IN_STREAM else 'OFF (streaming only; fire detection runs in fire-detection service)'}")
+print(f" Face recognition: ON")
 print(f" N8N Webhook: {'Configured ✓' if N8N_WEBHOOK_URL else 'Not configured ✗'}")
 print("="*80)
 
@@ -260,10 +263,10 @@ class CameraStream:
         self.lock = Lock()
         self.running = False
         
-        # Detection counters
+        # Detection counters (fire detection disabled here - handled by fire-detection service only)
         self.frame_count = 0
         self.face_detect_interval = FRAME_SKIP_FACE
-        self.fire_detect_interval = FRAME_SKIP_FIRE
+        self.fire_detect_interval = FRAME_SKIP_FIRE if ENABLE_FIRE_DETECTION_IN_STREAM else 0
         
     def start(self):
         """Start camera capture thread"""
